@@ -16,10 +16,13 @@ if (!"--fit" %in% arguments) {
   source(file.path(archive_root, "tools", "archive_runtime.R"), local = TRUE)
   cases <- readRDS(file.path(archive_root, "configuration_index.rds"))$cases
   for (case in cases) {
-    message("Starting ", case$id, "; detailed progress is written to its log file.")
+    configuration_key <- if (case$group <= 4) "n" else if (case$group == 5) "signal" else "ell"
+    configuration_tag <- paste0(configuration_key, "_", gsub(".", "p",
+      format(case$config, scientific = FALSE, trim = TRUE), fixed = TRUE))
+    message("Starting simu_", case$group, " | ", configuration_tag)
     run_archive(case$group, case$config, replication_ids = 1:100, archive_root = archive_root)
     gc(verbose = FALSE)
   }
-  message("Starting ACTG175; detailed progress is written to its log file.")
+  message("Starting real | dataset_actg175")
   run_archive("real", replication_ids = 1:100, archive_root = archive_root)
 }

@@ -5,6 +5,54 @@ replication_ids <- 1:100  # For a subset, for example use 1:30.
 workers <- 31L
 output_dir <- "output"  # Relative to the directory from which R starts.
 
+# Create the same output layout for every simulation and real-data run.
+.prepare_run_output <- function(analysis, configuration, replication_ids, workers, output_dir) {
+  configuration <- gsub("[^a-z0-9_-]", "_", tolower(configuration))
+  if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  if (!dir.exists(output_dir)) stop("Cannot create output directory: ", output_dir)
+  output_root <- normalizePath(output_dir, mustWork = TRUE)
+  parent <- file.path(output_root, analysis, configuration)
+  if (!dir.exists(parent)) dir.create(parent, recursive = TRUE, showWarnings = FALSE)
+  if (!dir.exists(parent)) stop("Cannot create configuration directory: ", parent)
+  stamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  base_name <- paste0("run_", stamp, "_pid", Sys.getpid())
+  created <- FALSE
+  for (attempt in 0:999) {
+    suffix <- if (attempt == 0L) "" else sprintf("_%02d", attempt + 1L)
+    run_directory <- file.path(parent, paste0(base_name, suffix))
+    if (dir.create(run_directory, showWarnings = FALSE)) {
+      created <- TRUE
+      break
+    }
+    if (!dir.exists(run_directory)) stop("Cannot create run directory: ", run_directory)
+  }
+  if (!created) stop("Cannot allocate a unique run directory.")
+  run_directory <- normalizePath(run_directory, mustWork = TRUE)
+  layout <- list(run_directory = run_directory,
+    log_directory = file.path(run_directory, "logs"),
+    replication_directory = file.path(run_directory, "replications"),
+    results_directory = file.path(run_directory, "results"))
+  for (path in layout[-1L]) {
+    if (!dir.create(path)) stop("Cannot create output subdirectory: ", path)
+  }
+  layout$log_file <- file.path(layout$log_directory, "progress.log")
+  if (!file.create(layout$log_file)) stop("Cannot create log file: ", layout$log_file)
+  header <- paste0("Analysis: ", analysis, " | ", configuration, "\n",
+    "Replications: ", length(replication_ids), " | workers requested: ", workers, "\n",
+    "Run directory: ", layout$run_directory, "\n",
+    "Log file: ", layout$log_file, "\n",
+    "Follow method-by-method progress in the log file.\n")
+  cat(header)
+  flush.console()
+  flush(stdout())
+  cat(header, file = layout$log_file, append = TRUE)
+  saveRDS(c(list(analysis = analysis, configuration = configuration,
+    replication_ids = as.integer(replication_ids), workers = as.integer(workers),
+    started_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")), layout),
+    file.path(run_directory, "run_manifest.rds"))
+  layout
+}
+
 run_experiment <- function(rerun_config,rerun_replication_ids,rerun_workers,rerun_output_dir) {
   if (!length(rerun_replication_ids) || anyNA(rerun_replication_ids) ||
       any(rerun_replication_ids!=as.integer(rerun_replication_ids)) ||
@@ -13,11 +61,11 @@ run_experiment <- function(rerun_config,rerun_replication_ids,rerun_workers,reru
   }
   if (length(rerun_workers)!=1L || !is.finite(rerun_workers) || rerun_workers<1 ||
       rerun_workers!=as.integer(rerun_workers)) stop("workers must be a positive integer.")
-  if (!dir.exists(rerun_output_dir)) dir.create(rerun_output_dir,recursive=TRUE)
-  output_root <- normalizePath(rerun_output_dir,mustWork=TRUE)
-  run_directory <- tempfile(pattern=paste0("real_",rerun_config,"_",
-    format(Sys.time(),"%Y%m%d_%H%M%S"),"_pid",Sys.getpid(),"_"),tmpdir=output_root)
-  if (!dir.create(run_directory)) stop("Cannot create a new output directory.")
+  archive_output <- .prepare_run_output("real", paste0("dataset_",tolower(rerun_config)),
+    rerun_replication_ids, rerun_workers, rerun_output_dir)
+  run_directory <- archive_output$run_directory
+  archive_replication_directory <- archive_output$replication_directory
+  archive_result_directory <- archive_output$results_directory
   old_directory <- getwd()
   on.exit(setwd(old_directory),add=TRUE)
   on.exit({
@@ -25,15 +73,12 @@ run_experiment <- function(rerun_config,rerun_replication_ids,rerun_workers,reru
     if (requireNamespace("foreach",quietly=TRUE)) foreach::registerDoSEQ()
   },add=TRUE)
   setwd(run_directory)
-  archive_log_directory <- file.path(run_directory,"logs")
-  dir.create(archive_log_directory,showWarnings=FALSE)
-  archive_log_file <- file.path(archive_log_directory,paste0("Log_real_",
-    "",rerun_config,"_",format(Sys.time(),"%Y%m%d_%H%M%S"),"_pid",Sys.getpid(),".txt"))
+  archive_log_directory <- archive_output$log_directory
+  archive_log_file <- archive_output$log_file
   archive_record_condition <- function(kind,condition) {
     cat(format(Sys.time(),"%Y-%m-%d %H:%M:%S")," | ",kind," | ",
       conditionMessage(condition),"\n",sep="",file=archive_log_file,append=TRUE)
   }
-  message("Run output: ",run_directory)
   withCallingHandlers({
   rerun_case_id <- "real"
 
@@ -2952,9 +2997,9 @@ invisible(parallel::clusterCall(cl,function() {
 }))
 registerDoParallel(cl)
 registered_workers <- foreach::getDoParWorkers()
-cat("Simulation begun with ",registered_workers," parallel workers\n",sep="")
+cat("Workers ready: ",registered_workers,"\n",sep=""); flush.console(); flush(stdout())
 cat("Log file: ",log_file,"\n",sep="")
-cat("Simulation begun with ",registered_workers," parallel workers\nLog file: ",log_file,"\n",sep="",file=log_file,append=TRUE)
+cat("Workers ready: ",registered_workers,"\nLog file: ",log_file,"\n",sep="",file=log_file,append=TRUE)
 replication_ids <- rerun_replication_ids
 results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "MASS", "matrixStats","glmnet","RCAL", "mvtnorm", "caret", "densratio","randomForestSRC","butcher","logger","filelock","survival", "dplyr","tidyr","purrr","ks","corpcor")) %dorng% {
   # for (t in 1:tmax){
@@ -3817,9 +3862,10 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   cat(theta_hat-theta00_hat,"\n",sqrt(sigma_DE/N)*qnorm(1-0.05/2),"\n")
   
   result=c(pred_theta=theta_hat, pred_theta0=theta00_hat, pred_theta1=theta11_hat,pred_sig2=sigma_hat, pred_sig2_IDE=sigma_IDE, pred_sig2_DE=sigma_DE,pred_sig2_TE=sigma_TE,mse_pi=mse_pi,mse_mu=mse_mu)
-  temp_file <- tempfile(pattern = "temp_", fileext = ".rds")
+  replication_file <- file.path(archive_replication_directory, sprintf("rep_%03d.rds", t))
+  temp_file <- paste0(replication_file, ".tmp")
   saveRDS(result, file = temp_file)
-  file.rename(temp_file, paste0("175_3_", current_time, "_", t , ".rds")) 
+  if (!file.rename(temp_file, replication_file)) stop("Cannot save replication file: ", replication_file)
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | results | saved",t,tmax))                                   
@@ -3883,9 +3929,9 @@ foreach::registerDoSEQ()
   result$results_par <- do.call(cbind,result[metric_names])
   colnames(result$results_par) <- unlist(lapply(metric_names,function(nm) paste(nm,method_names,sep=":")),use.names=FALSE)
 
-  final_path <- file.path(run_directory,paste0("Final_",rerun_case_id,"_",basename(run_directory),".RData"))
+  final_path <- file.path(archive_result_directory,"results.RData")
   save(list=names(result),envir=list2env(result,parent=emptyenv()),file=final_path)
-  write.csv(table_summary,file.path(run_directory,"summary.csv"),row.names=FALSE)
+  write.csv(table_summary,file.path(archive_result_directory,"summary.csv"),row.names=FALSE)
   print(table_summary)
   message("Saved newly fitted methods: ",paste(method_names,collapse=", "))
   message("Final result: ",final_path)

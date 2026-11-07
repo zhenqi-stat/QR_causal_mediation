@@ -16,10 +16,10 @@ Sys.setenv(
 require(glmnet);require(itertools);require(foreach);require(doParallel);require(RCAL);require(truncnorm);require(mvtnorm);require(corpcor);require(MASS);require(matrixStats);require(ranger);require(caret);require(cobalt);require(densratio);require(butcher);require(randomForestSRC);require(logger);require(filelock);require(sn)
 ptm=proc.time()
 
-s_level <- 6L
-if (!s_level %in% c(1L,3L,4L,5L,6L)) {
-  stop("s_level must be one of 1, 3, 4, 5, 6.")
-}
+ell <- 4L
+if (!ell %in% 1:4) stop("ell must be one of 1, 2, 3, 4.")
+# Map the panel index to the original coefficient construction.
+dgp_level <- c(1L,3L,5L,6L)[ell]
 
 current_time <- paste0(format(Sys.time(), "%Y%m%d_%H_%M_%S"), "_simu_6_6")
 
@@ -27,8 +27,8 @@ N=1800;d1=100L;d2=50L #sample size & dimensions
 n_mc=50L;
 Setting="sparsity_Mc" # pi and q correct; mu, tau_n and tau misspecified
 
-high_sparsity_hinge <- max(s_level-4L,0L)
-if (s_level==5L) {
+high_sparsity_hinge <- max(dgp_level-4L,0L)
+if (dgp_level==5L) {
   # New bridge level: q has 8 active M and 22 active X coordinates.
   # Nine pi-active X coordinates overlap q_X, so the p support is
   # 13+30-9=34: strictly between the level-4 and level-6 p supports.
@@ -36,7 +36,7 @@ if (s_level==5L) {
   s_q_X_target <- 22L
   s_pi_target <- 13L
   s_p_target <- 34L
-} else if (s_level==6L) {
+} else if (dgp_level==6L) {
   # Nested extension of level 5: q gains two M directions and seven X
   # directions, while p retains its target support size of 40.
   s_q_M_target <- 10L
@@ -44,12 +44,12 @@ if (s_level==5L) {
   s_pi_target <- 17L
   s_p_target <- 40L
 } else {
-  s_q_M_target <- s_level+3L
+  s_q_M_target <- dgp_level+3L
   s_q_X_target <- 2L*s_q_M_target
-  s_pi_target <- if (s_level==1L) {
+  s_pi_target <- if (dgp_level==1L) {
     4L
   } else {
-    2L*s_level+1L+2L*high_sparsity_hinge
+    2L*dgp_level+1L+2L*high_sparsity_hinge
   }
   s_p_target <- s_q_M_target+s_q_X_target+1L
 }
@@ -57,7 +57,7 @@ s_q_target <- s_q_M_target+s_q_X_target
 # The QR nuisance blocks use the mediator screening cap below.
 # Level 6 includes all ten true q_M directions rather than omitting two.
 #
-# q_M_screen_cap <- if (s_level==6L) 10L else 8L
+# q_M_screen_cap <- if (dgp_level==6L) 10L else 8L
 q_M_screen_cap <- 10L
 
 tmax=100;Kmb=5;value_trunc=1.2;n=floor(N/Kmb)
@@ -70,9 +70,9 @@ set.seed(seed)
 func_link=function(x){plogis(x)}
 beta_pi_i=1
 
-pi_X_support <- if (s_level==5L) {
+pi_X_support <- if (dgp_level==5L) {
   c(2L:10L,30L,81L:83L)
-} else if (s_level==6L) {
+} else if (dgp_level==6L) {
   c(2L:14L,30L,81L:83L)
 } else {
   pi_overlap_size <- s_pi_target-1L
@@ -110,7 +110,7 @@ for (i in 1:d1){
 }
 
 # Sigma & U
-if (s_level==5L) {
+if (dgp_level==5L) {
   # Unified extension rule: Phi_l = Phi_band + lambda_l sum_r e_Xr e_Mr'.
   # With q_M equal to the full level-4 support plus M17, the band part
   # naturally activates X2:X18. Five tail edges complete q_X=X2:X23.
@@ -119,7 +119,7 @@ if (s_level==5L) {
   # so the level-5 q_X signal budget is unchanged while the weak tail is
   # redistributed over five, rather than six, added support coordinates.
   Phi[cbind(19L:23L,c(3L,4L,7L,8L,10L))] <- sqrt(0.40)
-} else if (s_level==6L) {
+} else if (dgp_level==6L) {
   # Nested L6 extension. Adding the separated directions M20 and M23 to Q5
   # expands the band-induced q_X support through X24. Six tail edges then give
   # q_X={X2:X27,X81:X83}. The loading sqrt(31/48) solves
@@ -156,7 +156,7 @@ make_q_M_support <- function(level) {
   }
   c(3L,4L,7L,8L,extra_support)
 }
-q_M_support <- make_q_M_support(s_level)
+q_M_support <- make_q_M_support(dgp_level)
 q_M_coef <- sqrt(0.60 / length(q_M_support))
 
 w_q <- rep(0,d2)
@@ -175,7 +175,7 @@ beta_mu_i=1
 # s_mu,X=min{2s+1+I(s>=4),10}=(3,5,7,10,10,10).
 # Its total signal remains fixed, and X71 onward keeps it separate from pi/q.
 mu_X_support_size <- min(
-  2L*s_level+1L+as.integer(s_level>=4L),
+  2L*dgp_level+1L+as.integer(dgp_level>=4L),
   10L
 )
 mu_X_support <- seq.int(from=71L,length.out=mu_X_support_size)
@@ -183,12 +183,12 @@ mu_X_coef <- sqrt(0.27 / mu_X_support_size)
 beta_mu_X <- rep(0,d1)
 beta_mu_X[mu_X_support] <- mu_X_coef
 
-mu_M_q_support <- if (s_level==6L) {
+mu_M_q_support <- if (dgp_level==6L) {
   c(3L,4L,6L,7L,8L,9L,10L,12L,14L,15L,17L,20L,23L)
-} else if (s_level==5L) {
+} else if (dgp_level==5L) {
   sort(unique(c(q_M_support,6L,9L)))
 } else make_q_M_support(4L)
-mu_M_q_coef <- if (s_level==5L) 0.31*sqrt(8.5/10) else 0.31
+mu_M_q_coef <- if (dgp_level==5L) 0.31*sqrt(8.5/10) else 0.31
 beta_mu_M <- rep(0,d2)
 beta_mu_M[mu_M_q_support] <- mu_M_q_coef
 beta_mu_M[c(31,32)] <- 0.80
@@ -267,7 +267,7 @@ q_X_support <- which(abs(beta_q_X)>support_tol)
 q_M_beta_support <- which(abs(beta_q_M)>support_tol)
 p_X_support <- which(abs(beta_pi_X-beta_q_X)>support_tol)
 
-if (s_level==1L) {
+if (dgp_level==1L) {
   stopifnot(
     identical(pi_X_support,c(2L:4L,30L)),
     length(pi_X_support)==s_pi_target,
@@ -290,7 +290,7 @@ if (s_level==1L) {
   )
 }
 
-if (s_level==5L) {
+if (dgp_level==5L) {
   stopifnot(
     length(pi_X_support)==s_pi_target,
     length(q_M_beta_support)==s_q_M_target,
@@ -316,7 +316,7 @@ if (s_level==5L) {
   )
 }
 
-if (s_level==6L) {
+if (dgp_level==6L) {
   level5_pi_support <- c(2L:10L,30L,81L:83L)
   level5_q_M_support <- c(3L,4L,7L,8L,10L,12L,14L,17L)
   level5_q_X_support <- 2L:23L

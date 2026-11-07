@@ -16,10 +16,10 @@ Sys.setenv(
 require(glmnet);require(itertools);require(foreach);require(doParallel);require(RCAL);require(truncnorm);require(mvtnorm);require(corpcor);require(MASS);require(matrixStats);require(ranger);require(caret);require(cobalt);require(densratio);require(butcher);require(randomForestSRC);require(logger);require(filelock);require(sn)
 ptm=proc.time()
 
-s_level <- 5L
-if (!s_level %in% c(1L,3L,4L,5L,6L)) {
-  stop("s_level must be one of 1, 3, 4, 5, 6.")
-}
+ell <- 3L
+if (!ell %in% 1:4) stop("ell must be one of 1, 2, 3, 4.")
+# Map the panel index to the original coefficient construction.
+dgp_level <- c(1L,3L,5L,6L)[ell]
 
 current_time <- paste0(format(Sys.time(), "%Y%m%d_%H_%M_%S"), "_simu_6_5")
 
@@ -27,8 +27,8 @@ N=1800;d1=100L;d2=50L #sample size & dimensions
 n_mc=50L;
 Setting="sparsity_Mc" # pi and q correct; mu, tau_n and tau misspecified
 
-high_sparsity_hinge <- max(s_level-4L,0L)
-if (s_level==5L) {
+high_sparsity_hinge <- max(dgp_level-4L,0L)
+if (dgp_level==5L) {
   # New bridge level: q has 8 active M and 22 active X coordinates.
   # Nine pi-active X coordinates overlap q_X, so the p support is
   # 13+30-9=34: strictly between the level-4 and level-6 p supports.
@@ -37,9 +37,9 @@ if (s_level==5L) {
   s_pi_target <- 13L
   s_p_target <- 34L
 } else {
-  s_q_M_target <- if (s_level==6L) 8L else s_level+3L
-  s_q_X_target <- if (s_level==6L) 31L else 2L*s_q_M_target
-  s_pi_target <- 2L*s_level+1L+as.integer(s_level==1L)+
+  s_q_M_target <- if (dgp_level==6L) 8L else dgp_level+3L
+  s_q_X_target <- if (dgp_level==6L) 31L else 2L*s_q_M_target
+  s_pi_target <- 2L*dgp_level+1L+as.integer(dgp_level==1L)+
     2L*high_sparsity_hinge
   s_p_target <- s_q_M_target+s_q_X_target+1L
 }
@@ -55,7 +55,7 @@ set.seed(seed)
 func_link=function(x){plogis(x)}
 beta_pi_i=1
 
-pi_X_support <- if (s_level==5L) {
+pi_X_support <- if (dgp_level==5L) {
   c(2L:10L,30L,81L:83L)
 } else {
   pi_overlap_size <- s_pi_target-1L
@@ -93,7 +93,7 @@ for (i in 1:d1){
 }
 
 # Sigma & U
-if (s_level==5L) {
+if (dgp_level==5L) {
   # Unified extension rule: Phi_l = Phi_band + lambda_l sum_r e_Xr e_Mr'.
   # With q_M equal to the full level-4 support plus M17, the band part
   # naturally activates X2:X18. Five tail edges complete q_X=X2:X23.
@@ -102,7 +102,7 @@ if (s_level==5L) {
   # so the level-5 q_X signal budget is unchanged while the weak tail is
   # redistributed over five, rather than six, added support coordinates.
   Phi[cbind(19L:23L,c(3L,4L,7L,8L,10L))] <- sqrt(0.40)
-} else if (s_level==6L) {
+} else if (dgp_level==6L) {
   Phi[cbind(c(26L,27L,28L,29L,31L,32L,33L),
             c(3L,6L,9L,12L,15L,18L,21L))] <- 0.86
 }
@@ -124,7 +124,7 @@ make_q_M_support <- function(level) {
   }
   c(3L,4L,7L,8L,extra_support)
 }
-q_M_support <- make_q_M_support(s_level)
+q_M_support <- make_q_M_support(dgp_level)
 q_M_coef <- sqrt(0.60 / length(q_M_support))
 
 w_q <- rep(0,d2)
@@ -143,7 +143,7 @@ beta_mu_i=1
 # s_mu,X=min{2s+1+I(s>=4),10}=(3,5,7,10,10,10).
 # Its total signal remains fixed, and X71 onward keeps it separate from pi/q.
 mu_X_support_size <- min(
-  2L*s_level+1L+as.integer(s_level>=4L),
+  2L*dgp_level+1L+as.integer(dgp_level>=4L),
   10L
 )
 mu_X_support <- seq.int(from=71L,length.out=mu_X_support_size)
@@ -151,9 +151,9 @@ mu_X_coef <- sqrt(0.27 / mu_X_support_size)
 beta_mu_X <- rep(0,d1)
 beta_mu_X[mu_X_support] <- mu_X_coef
 
-mu_M_q_support <- if (s_level==6L) {
+mu_M_q_support <- if (dgp_level==6L) {
   c(3L,4L,6L,7L,8L,9L,10L,12L,14L,15L,18L,21L,24L)
-} else if (s_level==5L) {
+} else if (dgp_level==5L) {
   sort(unique(c(q_M_support,6L,9L)))
 } else make_q_M_support(4L)
 mu_M_q_coef <- 0.31
@@ -226,7 +226,7 @@ tau_all=beta_mu_i+as.numeric(X_all%*%beta_mu_X)+as.numeric(bsm_all%*%beta_mu_M)+
 tau1_all=tau_all
 
 # Fail fast if a later DGP edit breaks the level-5 support/signal design.
-if (s_level==5L) {
+if (dgp_level==5L) {
   support_tol <- 1e-12
   q_X_support <- which(abs(beta_q_X)>support_tol)
   q_M_beta_support <- which(abs(beta_q_M)>support_tol)

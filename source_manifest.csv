@@ -20,7 +20,7 @@ simu_5_signal0.5,simu_5.R,configurations/simu_5_signal0.5.R,5,0.5,1800,123,100,2
 simu_5_signal1,simu_5.R,configurations/simu_5_signal1.R,5,1,1800,123,100,2.82447311236459,results/simu_5_signal1.RData,7a1919d40b81e3d27600e9d0376b29c9
 simu_5_signal2,simu_5.R,configurations/simu_5_signal2.R,5,2,1800,123,100,3.45197569140164,results/simu_5_signal2.RData,da9ca0e1974880acf995507a2c3457eb
 simu_6_1,simu_6.R,configurations/simu_6_1.R,6,1,1800,123,100,2.02928339920185,results/simu_6_1.RData,93cb356b1258cd0100384f7b80d4b979
-simu_6_3,simu_6.R,configurations/simu_6_3.R,6,3,1800,123,100,2.02525221735242,results/simu_6_3.RData,29147f46d93a367529dc4683cfd9a22d
-simu_6_5,simu_6.R,configurations/simu_6_5.R,6,5,1800,123,100,2.02708817868452,results/simu_6_5.RData,01092a3d789f9cbc2ecb368c843bd765
-simu_6_6,simu_6.R,configurations/simu_6_6.R,6,6,1800,123,100,2.02693779608469,results/simu_6_6.RData,bff980ee825f2bc008493a6516723643
+simu_6_3,simu_6.R,configurations/simu_6_3.R,6,2,1800,123,100,2.02525221735242,results/simu_6_3.RData,29147f46d93a367529dc4683cfd9a22d
+simu_6_5,simu_6.R,configurations/simu_6_5.R,6,3,1800,123,100,2.02708817868452,results/simu_6_5.RData,01092a3d789f9cbc2ecb368c843bd765
+simu_6_6,simu_6.R,configurations/simu_6_6.R,6,4,1800,123,100,2.02693779608469,results/simu_6_6.RData,bff980ee825f2bc008493a6516723643
 real,real.R,configurations/real_2.R,real,NA,780,2026,100,NA,results/real.RData,77d22713b73c456dc2742b8a1ef27166

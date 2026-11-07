@@ -47,6 +47,6 @@ The QR2, TR, and O-TR batch took about 2 hours for 100 sample splits. The real-d
 
 ## Progress during a new run
 
-Method-by-method progress is written to the log file rather than continuously printed to the R console or terminal. The run directory and the absolute log-file path are printed at startup. All experiments write logs under `output/<run>/logs/`. Package-loading information and diagnostic messages are retained. When execution finishes, the run directory contains a `Final_*.RData` and a summary CSV.
+Each analysis prints its run directory and absolute log-file path before loading packages or preparing data. Method-by-method progress is written to `output/<analysis>/<configuration>/run_<timestamp>_pid<PID>/logs/progress.log`. Replication files are saved under `replications/`; the final `results.RData` and `summary.csv` are saved under `results/`. The same layout is used for simulations and ACTG175.
 
 Regenerating all seven numerical tables from the saved results takes less than one minute. Full estimation requires more than eight hours; the recorded batch timings above provide a guide for planning individual runs.
