@@ -31,7 +31,7 @@ The code keeps `offtrt == 0`, `r == 1`, and `arms != 3`, preserving the original
 | `cd420`, `cd820` | Numeric, CD4/CD8 counts at 20 +/- 5 weeks | Mediators, natural-log transformed |
 | `cd496` | Numeric, CD4 count at 96 +/- 5 weeks | Outcome, natural-log transformed |
 
-`X_all` contains the 12 listed baseline covariates. `M_all = log(df[, c("cd420", "cd820")])`, `Y_all = log(df$cd496)`, and `A_all = df$treat`. Polynomial and interaction bases are constructed by `expand_covariates_with_mediation` in `configurations/real_2_data_generate.R`. The QR-specific mediator basis is constructed after the log transformation. All preprocessing is executed by `real.R` through `configurations/real_2.R`.
+`X_all` contains the 12 listed baseline covariates. `M_all = log(df[, c("cd420", "cd820")])`, `Y_all = log(df$cd496)`, and `A_all = df$treat`. Polynomial and interaction bases are constructed by `expand_covariates_with_mediation` in `configurations/real_2_data_generate.R`. The QR-specific mediator basis is constructed after the log transformation. All preprocessing is executed by the self-contained `real.R` script.
 
 ## Simulation inputs
 
@@ -65,8 +65,8 @@ Bias, RMSE, and AL are displayed to three decimal places; AC is displayed as a p
 
 ## Final real-data results
 
-`results/real.RData` contains five reported methods over 100 sample splits. The columns are MQR2, O-TR', QR2, TR, and O-TR. Matrices `pred_theta`, `pred_theta0`, and `pred_theta1` hold estimates of theta(1,0), theta(0,0), and theta(1,1), respectively. `pred_sig2` and `pred_sig2_DE`, `pred_sig2_IDE`, `pred_sig2_TE` hold the corresponding influence-function variance estimates. NDE, NIE, and ATE splitwise estimates are `pred_theta - pred_theta0`, `pred_theta1 - pred_theta`, and `pred_theta1 - pred_theta0`.
+`results/real.RData` contains six available methods over 100 sample splits. The columns are MQR2, O-TR', QR1, QR2, TR, and O-TR. Main Table 6 displays TR, O-TR, QR2, O-TR', and MQR2; `reproduce_tables.R` selects these five methods for its CSV and LaTeX exports while preserving all six saved columns. Matrices `pred_theta`, `pred_theta0`, and `pred_theta1` hold estimates of theta(1,0), theta(0,0), and theta(1,1), respectively. `pred_sig2` and `pred_sig2_DE`, `pred_sig2_IDE`, `pred_sig2_TE` hold the corresponding influence-function variance estimates. NDE, NIE, and ATE splitwise estimates are `pred_theta - pred_theta0`, `pred_theta1 - pred_theta`, and `pred_theta1 - pred_theta0`.
 
 Each point estimate is the median over splits. For each scalar effect, the aggregated influence-function variance is `median(split_variance + (split_estimate - median(split_estimate))^2)`. The standard error is the square root of that quantity divided by `N`. `result_summary` and `table_summary` hold the aggregate estimates, CI lengths, p-values, and `NIE / ATE`; `confidence_intervals` holds the CI endpoints. `manuscript_display` stores the exact table strings. `aggregation` records these definitions, and `source_recipe` records source-file, method-column, and split-range provenance.
 
-`results_par` concatenates seven named split-level matrices. `N = 780`; `replication_ids` identifies splits 1 through 100. `DE`, `IDE`, and `TE` are the aggregate NDE, NIE, and ATE; the `p_*`, `sig2_*`, and `theta*` objects contain their p-values, variances, and component means. The mediation proportion is reported as a percentage in the manuscript. These result files contain no patient-level records.
+`results_par` concatenates seven named split-level matrices, each with 100 rows and six method columns (42 columns in total). `N = 780`; `replication_ids` identifies splits 1 through 100. `DE`, `IDE`, and `TE` are the aggregate NDE, NIE, and ATE; the `p_*`, `sig2_*`, and `theta*` objects contain their p-values, variances, and component means. The mediation proportion is reported as a percentage in the manuscript. These result files contain no patient-level records.

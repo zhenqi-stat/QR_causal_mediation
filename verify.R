@@ -47,9 +47,9 @@ for (case in index) {
   expressions <- parse(path, keep.source = FALSE)
   stopifnot(!any(vapply(expressions, .has_constant_true_if, logical(1))))
   active_text <- paste(deparse(expressions, width.cutoff = 500L), collapse = "\n")
-  completions <- c("MQR1 accomplished", "MQR2 accomplished",
-    "QR1 accomplished", "QR2 accomplished", "O-TR' accomplished",
-    "TR & O-TR accomplished")
+  completions <- c(" | MQR1 | complete", " | MQR2 | complete",
+    " | QR1 | complete", " | QR2 | complete", " | O-TR' | complete",
+    " | TR & O-TR | complete")
   stopifnot(all(vapply(completions, grepl, logical(1), x = active_text, fixed = TRUE)))
   stopifnot(sum(vapply(expressions, .archive_lhs_is, logical(1), name = "replication_ids")) == 1L)
 }

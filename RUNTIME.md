@@ -2,7 +2,7 @@
 
 The original simulation runs used 30 worker processes. Approximate runtimes in hours are summarized from the original logs. Method and replication coverage are recorded in `runtime_batches.csv`.
 
-## Latest 100-replication nonparametric batches
+## Recorded 100-replication nonparametric batches
 
 These batches compute QR1, QR2, TR, and O-TR. Times are hours for one configuration, using 30 workers. Full estimation also computes the parametric methods.
 
@@ -47,6 +47,6 @@ The QR2, TR, and O-TR batch took about 2 hours for 100 sample splits. The real-d
 
 ## Progress during a new run
 
-Method-by-method progress is written to the log file rather than continuously printed to the R console or terminal. The run directory is printed at startup. Open `internal_raw/logs/` within it (`internal_raw/ld1/` for Setting (iv), `internal_raw/logs_cd/` for real data). When execution finishes, the run directory contains a `Final_*.RData` and a summary CSV.
+Method-by-method progress is written to the log file rather than continuously printed to the R console or terminal. The run directory and the absolute log-file path are printed at startup. All experiments write logs under `output/<run>/logs/`. Package-loading information and diagnostic messages are retained. When execution finishes, the run directory contains a `Final_*.RData` and a summary CSV.
 
 Regenerating all seven numerical tables from the saved results takes less than one minute. Full estimation requires more than eight hours; the recorded batch timings above provide a guide for planning individual runs.

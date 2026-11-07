@@ -6,13 +6,13 @@ Code and final computational results for *Quadruply robust methods for causal me
 
 | Script | Experiment | Table | Configurations |
 | --- | --- | --- | --- |
-| `simu_1.R` | Setting (i) | Main Table 5 | `N = 600, 1000, 1400, 1800` |
-| `simu_2.R` | Setting (ii) | Main Table 6 | `N = 600, 1000, 1400, 1800` |
-| `simu_3.R` | Setting (iii), correctly specified parametric models | Main Table 7 | `N = 600, 1000, 1400, 1800` |
-| `real.R` | ACTG175 analysis | Main Table 8 | 100 sample splits |
-| `simu_4.R` | Setting (iv), binary mediator | Supplement Table 4 | `N = 600, 1000, 1400, 1800` |
-| `simu_5.R` | Setting (v), decayed signal | Supplement Table 5 | `signal = 0.25, 0.5, 1, 2`; `N = 1800` |
-| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 6 | `s_level = 1, 3, 5, 6`; `N = 1800` |
+| `simu_1.R` | Setting (i) | Main Table 4 | `N = 600, 1000, 1400, 1800` |
+| `simu_2.R` | Setting (ii) | Main Table 5 | `N = 600, 1000, 1400, 1800` |
+| `simu_3.R` | Setting (iii), correctly specified parametric models | Supplement Table 7 | `N = 600, 1000, 1400, 1800` |
+| `real.R` | ACTG175 analysis | Main Table 6 | 100 sample splits |
+| `simu_4.R` | Setting (iv), binary mediator | Supplement Table 8 | `N = 600, 1000, 1400, 1800` |
+| `simu_5.R` | Setting (v), varying nonlinear signal | Supplement Table 9 | `signal = 0.25, 0.5, 1, 2`; `N = 1800` |
+| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 10 | `s_level = 1, 3, 5, 6`; `N = 1800` |
 
 The four sparsity levels correspond to `(s_pi, s_q) = (4,12), (7,18), (13,30), (17,39)`. `table_map.csv` gives the same mapping in machine-readable form. The other manuscript tables summarize theoretical properties, and the figures are schematic diagrams.
 
@@ -38,15 +38,17 @@ or, from a terminal:
 Rscript run_all.R
 ```
 
-This recalculates the seven numerical tables from the 25 final result files in `results/` and writes unrounded CSVs, formatted CSVs, and LaTeX rows to `tables/`. It takes less than one minute and requires only base R. The source result files are not overwritten.
+This command rebuilds the seven numerical tables from the 25 final result files in `results/`. It takes less than one minute and requires base R. Unrounded CSVs, formatted CSVs, and LaTeX rows are written to `tables/`; filenames follow the manuscript table numbers, such as `main_table_4_display.csv`.
 
 ## Rerun estimation
 
-Select the configuration near the top of an entrypoint, then run it, for example:
+Select the configuration, replication IDs, and worker count near the top of an entrypoint, then run it, for example:
 
 ```r
 source("simu_1.R")
 ```
+
+Each experiment script is self-contained and can also be run directly with `Rscript`. To run replications 1--30, set `replication_ids <- 1:30`; keep `tmax = 100`.
 
 Run the full collection of 24 simulation configurations and the real-data analysis with:
 
@@ -54,21 +56,22 @@ Run the full collection of 24 simulation configurations and the real-data analys
 Rscript run_all.R --fit
 ```
 
-All analysis scripts run repetitions `1:100`. MQR1, MQR2, QR1, and QR2 are enabled. Simulation results report Oracle, TR, O-TR, QR1, QR2, O-TR', MQR1, and MQR2. The real-data table uses TR, O-TR, QR2, O-TR', and MQR2; the real-data implementation also computes QR1 and MQR1.
+The default is `1:100`. Simulations report Oracle, TR, O-TR, QR1, QR2, O-TR', MQR1, and MQR2. Main Table 6 displays TR, O-TR, QR2, O-TR', and MQR2. The real-data analysis also computes and saves QR1.
 
 Simulations use 30 worker processes. The real-data implementation specifies 31 workers. Its QR2, TR, and O-TR batch took about 2 hours for 100 sample splits. Approximate runtimes and batch coverage are summarized in `RUNTIME.md`.
 
 ### Progress and output files
 
-The run directory is printed when execution starts. Method-by-method progress is written to log files, not continuously to the R console or terminal. A quiet console during model fitting is normal. Look under the newly created directory:
+At startup, the console prints the run directory and log-file path:
 
 ```text
-output/<configuration>/<run>/internal_raw/logs/     Settings (i), (ii), (iii), (v), (vi)
-output/<configuration>/<run>/internal_raw/ld1/     Setting (iv)
-output/real/<run>/internal_raw/logs_cd/             ACTG175
+Simulation begun with 30 parallel workers
+Log file: /path/to/output/<run>/logs/Log_simu_1_N600_<timestamp>_pid<pid>.txt
 ```
 
-Each completed run writes a named `Final_*.RData`, a summary CSV, and `run_manifest.rds` in its run directory. `internal_raw/` holds the implementation's intermediate outputs and logs. New runs do not replace the bundled final results.
+Follow estimation progress in the log file. It records package messages, warnings, errors, and method completion.
+
+Each completed run writes `Final_*.RData` and a summary CSV to its run directory. Logs are stored in its `logs/` subfolder.
 
 ## Summary definitions
 
@@ -99,16 +102,16 @@ Additional package versions, compiler information, and library-linkage details a
 
 ## Structure and verification
 
-`configurations/` contains the configuration-specific implementations. `configuration_index.rds` selects their parameters; `source_manifest.csv` and the result-file metadata record source and replication mappings. `tools/` contains execution and verification utilities. `results/` holds 24 simulation result files, each with 100 replications and eight reported methods, plus `real.RData` with 100 splits for the five methods in the real-data table.
+`configurations/` contains the configuration-specific implementations, and `configuration_index.rds` records their parameters. `source_manifest.csv` and result metadata document the sources and replications. `tools/` contains execution and verification utilities. `results/` holds 24 simulation files with 100 replications each and `real.RData` with 100 sample splits.
 
-The configuration-specific files retain their separate implementations so that their tuning rules and random-number call order stay tied to the corresponding results. Inactive alternative snippets in comments are not part of execution. Internal companion calculations are retained where required to preserve the random-number sequence; their results are not included among the reported methods.
+The seven analysis entrypoints contain their complete implementations. The configuration-specific files provide the corresponding DGP definitions used by the verification utilities.
 
 ```bash
 Rscript verify.R
 Rscript verify.R --dgp
 ```
 
-The first command checks the source files, result completeness, and table calculations. The second also regenerates the 24 DGP configurations and checks each finite-pool target and 100 Oracle estimates and variances. These DGP/Oracle checks do not rerun nuisance estimation.
+`verify.R` checks source files, result completeness, and summary calculations. The `--dgp` option also regenerates the 24 DGP configurations and checks their finite-pool targets and 2,400 Oracle estimates and variances. Use `run_all.R --fit` for full estimation.
 
 ## License
 

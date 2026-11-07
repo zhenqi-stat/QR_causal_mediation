@@ -256,79 +256,38 @@
   result
 }
 
+# Load one standalone entrypoint without triggering its default full run.
 run_archive <- function(group, config = NULL, replication_ids = 1:100,
-                        archive_root = getwd()) {
+                        archive_root = getwd(), workers = NULL,
+                        output_dir = NULL) {
   replication_ids <- .archive_replication_ids(replication_ids)
   archive_root <- normalizePath(archive_root, mustWork = TRUE)
   real <- identical(as.character(group), "real")
   if (real) {
-    case <- list(id = "real", path = "configurations/real_2.R", tmax = 100L)
-    output_name <- "real"
+    entry <- "real.R"
+    selected_config <- "ACTG175"
   } else {
     if (length(group) != 1L || !as.character(group) %in% as.character(1:6)) {
       .archive_stop("group must be one of 1 through 6, or 'real'.")
     }
     case <- .archive_select_case(archive_root, group, config)
-    selector <- if (as.integer(group) <= 4L) "N" else if (as.integer(group) == 5L) "signal" else "s_level"
-    output_name <- paste0("simu_", group, "_", selector, config)
+    entry <- paste0("simu_", as.integer(group), ".R")
+    selected_config <- case$config
   }
-  source_path <- .archive_source_path(archive_root, case$path)
-  output_root <- file.path(archive_root, "output", output_name)
-  if (!dir.exists(output_root) && !dir.create(output_root, recursive = TRUE)) {
-    .archive_stop("Cannot create output directory: ", output_root)
-  }
-  run_directory <- tempfile(pattern = paste0(format(Sys.time(), "%Y%m%d_%H%M%S"),
-    "_pid", Sys.getpid(), "_"), tmpdir = output_root)
-  if (!dir.create(run_directory)) .archive_stop("Cannot create a fresh run directory.")
-  run_id <- basename(run_directory)
-  raw_directory <- file.path(run_directory, "internal_raw")
-  if (!dir.create(raw_directory)) .archive_stop("Cannot create the raw-output directory.")
-  if (real) {
-    helper_path <- .archive_source_path(archive_root, "configurations/real_2_data_generate.R")
-    if (!file.copy(helper_path, file.path(raw_directory, "real_2_data_generate.R"), overwrite = FALSE)) {
-      .archive_stop("Cannot stage the real-data implementation helper.")
-    }
-  }
-  manifest <- list(source_id = case$id, source_path = case$path,
-    replication_ids = replication_ids, tmax = 100L, run_id = run_id,
-    started_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), status = "running")
-  saveRDS(manifest, file.path(run_directory, "run_manifest.rds"))
+  path <- .archive_source_path(archive_root, entry)
   execution <- new.env(parent = .GlobalEnv)
-  old_directory <- getwd()
-  on.exit(setwd(old_directory), add = TRUE)
-  on.exit({
-    if (exists("cl", envir = execution, inherits = FALSE)) {
-      cluster <- get("cl", envir = execution, inherits = FALSE)
-      if (inherits(cluster, "cluster")) try(parallel::stopCluster(cluster), silent = TRUE)
-    }
-  }, add = TRUE)
-  setwd(raw_directory)
-  message("Run output: ", run_directory)
-  result <- tryCatch({
-    .archive_evaluate(source_path, replication_ids, execution, real = real)
-    if (real) .archive_real_result(execution, replication_ids) else
-      .archive_simulation_result(execution, case, replication_ids)
-  }, error = function(error) {
-    manifest$status <- "failed"
-    manifest$error <- conditionMessage(error)
-    saveRDS(manifest, file.path(run_directory, "run_manifest.rds"))
-    .archive_stop("Archive run failed; generated diagnostics remain in ", raw_directory,
-                  ".\n", conditionMessage(error))
-  })
-  result$run_id <- run_id
-  id <- gsub("[^A-Za-z0-9_.-]", "_", as.character(case$id))
-  final_path <- file.path(run_directory, paste0("Final_", id, "_", run_id, ".RData"))
-  save(list = names(result), envir = list2env(result, parent = emptyenv()), file = final_path)
-  summary_path <- file.path(run_directory, paste0("summary_", id, "_", run_id, ".csv"))
-  utils::write.csv(result$table_summary, file = summary_path, row.names = FALSE)
-  manifest$status <- "complete"
-  manifest$finished_at <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
-  manifest$final_file <- basename(final_path)
-  manifest$summary_file <- basename(summary_path)
-  saveRDS(manifest, file.path(run_directory, "run_manifest.rds"))
-  message("Clean result: ", final_path)
-  invisible(list(final_file = final_path, summary_file = summary_path,
-    run_directory = run_directory, manifest = manifest))
+  old_autorun <- getOption("qr.archive.no_autorun")
+  on.exit(options(qr.archive.no_autorun = old_autorun), add = TRUE)
+  options(qr.archive.no_autorun = TRUE)
+  sys.source(path, envir = execution)
+  options(qr.archive.no_autorun = old_autorun)
+  if (!exists("run_experiment", envir = execution, inherits = FALSE) ||
+      !is.function(execution$run_experiment)) {
+    .archive_stop("Missing standalone run_experiment() in ", entry)
+  }
+  if (is.null(workers)) workers <- execution$workers
+  if (is.null(output_dir)) output_dir <- file.path(archive_root, "output")
+  execution$run_experiment(selected_config, replication_ids, workers, output_dir)
 }
 
 # Lightweight deterministic checks: no model fits, packages, or source data.

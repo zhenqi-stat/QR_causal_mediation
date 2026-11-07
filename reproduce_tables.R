@@ -22,8 +22,14 @@ load_result <- function(id) {
   as.list(env)
 }
 cases <- readRDS(file.path(archive_root, "configuration_index.rds"))$cases
-table_stems <- c("main_table_5", "main_table_6", "main_table_7",
-                 "supplement_table_4", "supplement_table_5", "supplement_table_6")
+table_map <- utils::read.csv(file.path(archive_root, "table_map.csv"),
+                             stringsAsFactors = FALSE)
+table_stem <- function(entrypoint) {
+  mapping <- table_map[table_map$entrypoint == entrypoint, , drop = FALSE]
+  stopifnot(nrow(mapping) == 1L)
+  paste0(tolower(mapping$document), "_table_", mapping$table)
+}
+table_stems <- vapply(paste0("simu_", 1:6, ".R"), table_stem, character(1))
 for (group in 1:6) {
   selected <- Filter(function(x) identical(as.integer(x$group), group), cases)
   summary_rows <- list()
@@ -53,9 +59,13 @@ for (group in 1:6) {
 }
 real <- load_result("real")
 aggregate <- recompute_real_results(real)
+# Keep all six saved methods intact; export the five rows in Main Table 6.
+real_table_methods <- c("TR", "O-TR", "QR2", "O-TR'", "MQR2")
+stopifnot(all(real_table_methods %in% real$method_names))
 summary <- aggregate$result_summary[
-  match(real$paper_method_names, aggregate$result_summary$method), , drop = FALSE]
-utils::write.csv(summary, file.path(table_directory, "main_table_8.csv"), row.names = FALSE)
+  match(real_table_methods, aggregate$result_summary$method), , drop = FALSE]
+real_stem <- file.path(table_directory, table_stem("real.R"))
+utils::write.csv(summary, paste0(real_stem, ".csv"), row.names = FALSE)
 format_p <- function(x) ifelse(x < .001, sprintf("%.1e", x), sprintf("%.3f", x))
 display <- data.frame(
   method = summary$method,
@@ -67,11 +77,11 @@ display <- data.frame(
 # Check every printed string against the saved manuscript display, not only rounded numerics.
 for (i in seq_len(nrow(real$manuscript_display))) {
   row <- real$manuscript_display[i, ]
-  if (row$method == "Common ATE") next
+  if (!row$method %in% real_table_methods) next
   actual <- display[match(row$method, display$method), row$metric]
   stopifnot(identical(unname(actual), row$table_display))
 }
-utils::write.csv(display, file.path(table_directory, "main_table_8_display.csv"), row.names = FALSE)
+utils::write.csv(display, paste0(real_stem, "_display.csv"), row.names = FALSE)
 latex_rows <- vapply(seq_len(nrow(display)), function(i) {
   row <- unlist(display[i, ])
   row[length(row)] <- paste0(row[length(row)], "\\%")
@@ -79,7 +89,7 @@ latex_rows <- vapply(seq_len(nrow(display)), function(i) {
 }, character(1))
 common <- data.frame(ATE = sprintf("%.3f", summary$ATE[1]),
   ATE_length = sprintf("%.3f", summary$ATE_length[1]), ATE_p = format_p(summary$ATE_p[1]))
-utils::write.csv(common, file.path(table_directory, "main_table_8_common_ATE.csv"), row.names = FALSE)
+utils::write.csv(common, paste0(real_stem, "_common_ATE.csv"), row.names = FALSE)
 writeLines(c(latex_rows, "", paste0("% Common ATE: ", paste(unlist(common), collapse = ", "))),
-           file.path(table_directory, "main_table_8_rows.tex"))
-message("Regenerated main Tables 5-8 and supplementary Tables 4-6 in: ", table_directory)
+           paste0(real_stem, "_rows.tex"))
+message("Regenerated main Tables 4-6 and supplementary Tables 7-10 in: ", table_directory)

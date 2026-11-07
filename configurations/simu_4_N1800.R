@@ -3,6 +3,10 @@
 # Only switches, replication-range plumbing, RNG preservation and output metadata are normalized.
 #离散变量M
 rm(list=ls())
+archive_log_directory <- file.path(normalizePath(getwd(),mustWork=TRUE),"logs")
+dir.create(archive_log_directory,recursive=TRUE,showWarnings=FALSE)
+archive_log_file <- file.path(archive_log_directory,paste0("Log_simu_4_N1800_",format(Sys.time(),"%Y%m%d_%H%M%S"),"_pid",Sys.getpid(),".txt"))
+
 require(glmnet);require(itertools);require(foreach);require(doParallel);require(RCAL);require(MASS);require(matrixStats);require(ranger);require(caret);require(cobalt);require(densratio);require(butcher);require(randomForestSRC);require(logger);require(filelock);require(sn);
 require(truncnorm);require(mvtnorm)
 ptm=proc.time()
@@ -154,7 +158,7 @@ Sys.setenv(
   R_RANGER_NUM_THREADS = "1",
   RF_CORES = "1"
 )
-options(ranger.num.threads = 1L, rf.cores = 1L)
+options(ranger.num.threads = 1L, rf.cores = 1L, warn=1L)
 ctrl_pi=trainControl(method="cv", number=5, summaryFunction=twoClassSummary, classProbs=TRUE,
                      allowParallel=FALSE)
 ctrl_mu=trainControl(method="cv", number=5, summaryFunction=defaultSummary,classProbs=FALSE,
@@ -388,14 +392,20 @@ normalized_truncate_q_logstable <- function(
     return(q_out)
   }
 
-  # Because exp(.) is monotone, truncating q at its empirical quantiles
-  # is equivalent to truncating log(q) at the corresponding log-quantiles.
-  log_bounds <- quantile(
-    ref_log_q,
-    probs = c(lower_prob, upper_prob),
-    names = FALSE,
-    na.rm = TRUE
-  )
+  # Type-7 quantiles on the q scale, evaluated without exp(log_q) overflow.
+  # For adjacent ordered q values, type 7 interpolates their arithmetic mean.
+  # Its logarithm is a weighted log-sum-exp, not a quantile of log(q).
+  ordered_log_q <- sort(ref_log_q)
+  log_quantile_q <- function(prob) {
+    h <- 1 + (length(ordered_log_q) - 1) * prob
+    lo <- floor(h)
+    fraction <- h - lo
+    if (fraction == 0 || lo == length(ordered_log_q)) return(ordered_log_q[lo])
+    low <- ordered_log_q[lo]
+    high <- ordered_log_q[lo + 1L]
+    high + log((1 - fraction) * exp(low - high) + fraction)
+  }
+  log_bounds <- vapply(c(lower_prob,upper_prob),log_quantile_q,numeric(1))
 
   lower_log <- log_bounds[1]
   upper_log <- log_bounds[2]
@@ -1092,11 +1102,12 @@ fit_binary_rf_cf <- function(X_train, M_train, K = 3,
 }
 
 #-------------experimental log----------------------
-log_dir <- "ld1"
+cat("Session information:\n",paste(capture.output(sessionInfo()),collapse="\n"),"\n",file=archive_log_file,append=TRUE)
+log_dir <- dirname(archive_log_file)
 if (!dir.exists(log_dir)) {
   dir.create(log_dir)
 }
-log_file<-file.path(log_dir, paste0("l_ld1", current_time, ".txt"))
+log_file <- archive_log_file
 res_dir <- "res_ld1"
 if (!dir.exists(res_dir)) {
   dir.create(res_dir)
@@ -1115,13 +1126,22 @@ cat("\n beta_mu_M=", capture.output(beta_mu_M),file = log_file, append = TRUE)
 cat("\n summary(pi_all)=",paste(capture.output(summary(pi_all)), collapse = "\n"), file = log_file, append = TRUE)
 cat("\n\n summary(p_all)=",paste(capture.output(summary(p_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
 cat("\n\n summary(q_all)=",paste(capture.output(summary(q_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
-cat("Simulation begun\n")
 
 #num_cores <- detectCores()
 #print(paste("Available cores:", num_cores))
-if (!is.null(getOption("cl"))) { stopCluster(getOption("cl")) }
-cl <- makeCluster(min(limit,tmax))  # 使用核心数减 1，保留一个核心给操作系统
+
+cl <- makeCluster(min(limit,tmax),outfile=archive_log_file)  # 使用核心数减 1，保留一个核心给操作系统
 registerDoParallel(cl)
+invisible(parallel::clusterCall(cl,function() {
+  Sys.setenv(OMP_NUM_THREADS="1",OPENBLAS_NUM_THREADS="1",MKL_NUM_THREADS="1",
+    VECLIB_MAXIMUM_THREADS="1",NUMEXPR_NUM_THREADS="1",R_RANGER_NUM_THREADS="1",RF_CORES="1")
+  options(ranger.num.threads=1L,rf.cores=1L,warn=1L)
+  NULL
+}))
+registered_workers <- foreach::getDoParWorkers()
+cat("Simulation begun with ",registered_workers," parallel workers\n",sep="")
+cat("Log file: ",log_file,"\n",sep="")
+cat("Simulation begun with ",registered_workers," parallel workers\nLog file: ",log_file,"\n",sep="",file=log_file,append=TRUE)
 
 #----------Computing estimators-------
 num_mu_est=10;num_pi_est=10;num_q_est=10;num_p_est=6;num_totest=num_pi_est
@@ -1182,7 +1202,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   #estimation of pi, p, q, mu, tau1, tau
   
   # Retain the original pre-method RNG consumption and method call order.
-  archive_qr1_entry_rng <- get(".Random.seed", envir = .GlobalEnv)
   # ------------MQR1-----------
   set.seed(seed)
   for (k in 1:Kmb){
@@ -1297,30 +1316,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   
     #tau1
     index_train4_A0=index_train4[which(A[index_train4]==0)]
-    find_mu=which(fit_lasso_mu$lambda==fit_lasso_mu$lambda.min)
-    a0_mu=fit_lasso_mu$glmnet.fit$a0[find_mu]
-    alpha_mu_X=fit_lasso_mu$glmnet.fit$beta[1:d1,find_mu]
-    alpha_mu_M=fit_lasso_mu$glmnet.fit$beta[(d1+1):(d1+d2),find_mu]
-    pred_mu_new1=S_poly[index_train4_A0,(d1+1):(d1+d2),drop=FALSE]%*%alpha_mu_M+a0_mu
+    pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train4_A0,,drop=FALSE],s="lambda.min"))
     #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_train4,],s="lambda.min")
-    if (sd(pred_mu_new1)==0 || length(pred_mu_new1)<8){pred_tau1[1,index]=X_poly[index,]%*%alpha_mu_X+
-      rep(mean(pred_mu_new1),length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
+    tau1_constant_response <- sd(pred_mu_new1)==0 || length(pred_mu_new1)<8
+    tau1_training_mean <- mean(pred_mu_new1)
+    if (tau1_constant_response){pred_tau1[1,index]=rep(tau1_training_mean,length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_train4_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_train4_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-        pred_tau1[1,index]=X_poly[index,]%*%alpha_mu_X+
-          predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
+        pred_tau1[1,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))}
     # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
     # pred_tau1_test=pred_tau1[1,index]
   
   
     #tau
-    pred_mu_new2=S_poly[index_train5,(d1+1):(d1+d2),drop=FALSE]%*%alpha_mu_M+a0_mu
+    pred_mu_new2=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train5,,drop=FALSE],s="lambda.min"))
     #pred_mu_new2=predict(fit_lasso_mu,newx=S_poly[index_train5,], s="lambda.min")
-    if (sd(pred_mu_new1)==0 || length(pred_mu_new1)<8){pred_tau1_new1=X_poly[index_train5,]%*%alpha_mu_X+
-      rep(mean(pred_mu_new1),length(index_train5))} else{      pred_tau1_new1=X_poly[index_train5,]%*%alpha_mu_X+
-        predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
+    if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_train5))} else{      pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
       }
-    y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2-X_poly[index_train5,]%*%alpha_mu_X)
+    y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2)
     if (sd(y_pseudo)==0){pred_tau[1,index]=rep(mean(y_pseudo),length(index));lambda_tau=c(lambda_tau,0)} else{
       fit_lasso_tau=cv.glmnet(x=X_poly[index_train5,],y=y_pseudo, weights=A[index_train5]*exp(-alpha_a[1]-X_poly[index_train5,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[1,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
@@ -1328,7 +1341,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "MQR1 accomplished"))
+  log_info(sprintf("Replication %03d/%03d | MQR1 | complete",t,tmax))
   set.seed(seed)
 
   #------------MQR2------------------
@@ -1406,30 +1419,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
   
     #tau1
-    find_mu=which(fit_lasso_mu$lambda==fit_lasso_mu$lambda.min)
-    a0_mu=fit_lasso_mu$glmnet.fit$a0[find_mu]
-    alpha_mu_X=fit_lasso_mu$glmnet.fit$beta[1:d1,find_mu]
-    alpha_mu_M=fit_lasso_mu$glmnet.fit$beta[(d1+1):(d1+d2),find_mu]
-    pred_mu_new1=a0_mu+S_poly[index_nk_A0,(d1+1):(d1+d2),drop=FALSE]%*%alpha_mu_M
+    pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A0,,drop=FALSE],s="lambda.min"))
     #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
-    if (sd(pred_mu_new1)==0){pred_tau1[2,index]=X_poly[index,]%*%alpha_mu_X+
-      rep(mean(pred_mu_new1),length(index));lambda_tau1=c(lambda_tau1,-1)} else{
+    tau1_constant_response <- sd(pred_mu_new1)==0
+    tau1_training_mean <- mean(pred_mu_new1)
+    if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_nk_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-        pred_tau1[2,index]=X_poly[index,]%*%alpha_mu_X+
-          predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
+        pred_tau1[2,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
       }
     # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
     # pred_tau1_test=pred_tau1[2,index]
   
     #tau
-    pred_mu_new1=a0_mu+S_poly[index_nk_A,(d1+1):(d1+d2),drop=FALSE]%*%alpha_mu_M
-    if (sd(pred_mu_new1)==0){pred_tau1_new1=X_poly[index_nk_A,]%*%alpha_mu_X+
-      rep(mean(pred_mu_new1),length(index_nk_A))} else{
-        pred_tau1_new1=X_poly[index_nk_A,]%*%alpha_mu_X+
-          predict(fit_lasso_tau1,newx=X_poly[index_nk_A,],s="lambda.min")
+    pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A,,drop=FALSE],s="lambda.min"))
+    if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_nk_A))} else{
+        pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_nk_A,],s="lambda.min")
       }
-    y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(Y[index_nk_A]-pred_mu_new1-X_poly[index_nk_A,]%*%alpha_mu_X)
+    y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(Y[index_nk_A]-pred_mu_new1)
     if (sd(y_pseudo)==0){pred_tau[2,index]=rep(mean(y_pseudo),length(index));lambda_tau=c(lambda_tau,-1)} else{
       fit_lasso_tau=cv.glmnet(x=X_poly[index_nk_A,],y=y_pseudo, weights=exp(-alpha_a[1]-X_poly[index_nk_A,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[2,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
@@ -1438,30 +1445,31 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "MQR2 accomplished"))
+  log_info(sprintf("Replication %03d/%03d | MQR2 | complete",t,tmax))
   set.seed(seed)
 
-  # Preserve the QR1 entry state of its published QR-only batch.
-  assign(".Random.seed", archive_qr1_entry_rng, envir = .GlobalEnv)
+  # QR1: pi uses all training data; q uses blocks 1+2; mu/tau_n/tau use blocks 1/2/3.
+  set.seed(seed)
   #----------------QR1-----------
   set.seed(seed)
   for (k in 1:Kmb) {
     index=(1:n)+(k-1)*n
     index_nk=(1:N)[-index]
-    index_nk3=index_nk[floor(length(index_nk)/3*2):length(index_nk)]
-    index_nk12=index_nk[-(floor(length(index_nk)/3*2):length(index_nk))]
-    index_nk12_A=index_nk12[A[index_nk12]==1]
-    index_nk12_A0=index_nk12[A[index_nk12]==0]
-    index_nk1=index_nk12[1:floor(length(index_nk12)/2)]
-    index_nk2=index_nk12[-(1:floor(length(index_nk12)/2))]
-    index_nk1_A=index_nk1[A[index_nk1]==1]
-    index_nk2_A0=index_nk2[A[index_nk2]==0]
-    index_nk3_A=index_nk3[A[index_nk3]==1]
-  
+    # Three disjoint regression blocks; pi uses all training data and q uses blocks 1+2.
+    qr1_cut <- floor(seq(0, length(index_nk), length.out=4))
+    index_nk1 <- index_nk[seq_len(qr1_cut[2])]
+    index_nk2 <- index_nk[seq.int(qr1_cut[2]+1L, qr1_cut[3])]
+    index_nk3 <- index_nk[seq.int(qr1_cut[3]+1L, qr1_cut[4])]
+    index_nk12 <- c(index_nk1, index_nk2)
+    index_nk1_A <- index_nk1[A[index_nk1]==1]
+    index_nk1_A0 <- index_nk1[A[index_nk1]==0]
+    index_nk2_A0 <- index_nk2[A[index_nk2]==0]
+    index_nk3_A <- index_nk3[A[index_nk3]==1]
+
     #pi using Random forest
-    lasso_pi <- lasso_var_selection(X[index_nk12,],A[index_nk12],task=1)
+    lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk12,selected_vars_pi,drop=FALSE], y=A_fac[index_nk12], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk12),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk12)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -1568,7 +1576,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "QR1 accomplished"))
+  log_info(sprintf("Replication %03d/%03d | QR1 | complete",t,tmax))
   set.seed(seed)
   
   # --------------------QR2---------
@@ -1675,7 +1683,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "QR2 accomplished"))
+  log_info(sprintf("Replication %03d/%03d | QR2 | complete",t,tmax))
   set.seed(seed)
   
   #--------------O-TR'---------------
@@ -1756,7 +1764,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "O-TR' accomplished"))
+  log_info(sprintf("Replication %03d/%03d | O-TR' | complete",t,tmax))
   set.seed(seed)
   
 
@@ -1832,7 +1840,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_tau1=c(mtry_tau1,tau1_rf_TR$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf_TR$bestTune$min.node.size)
   
-    #mu for TR/O-TR2
+    #mu for TR
     lasso_mu<-lasso_var_selection(S[index_nk_A, , drop = FALSE], Y[index_nk_A], task = 0)
     selected_vars_mu<-lasso_mu$selected_vars
     mu_rf_TR=caret::train(x=S[index_nk_A, , drop = FALSE][,selected_vars_mu,drop=FALSE], y=Y[index_nk_A], method= "ranger", trControl=ctrl_mu, importance="none", num.trees=generate_num_tree(length(index_nk_A)), tuneGrid=generate_tune_grid(length(index_nk_A),length(selected_vars_mu),0))
@@ -1841,15 +1849,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
     # summary(pred_mu[5,index]-mu[index])
-  
-    #tau1 for O-TR2
-    prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=S[index_nk_A0, , drop = FALSE][,selected_vars_mu,drop=FALSE])
-    lasso_tau1<-lasso_var_selection(X[index_nk_A0,], prediction_mu_new1_TR$predictions, task = 0)
-    selected_vars_tau1<-lasso_tau1$selected_vars
-    tau1_rf_TR=caret::train(x=as.matrix(X[index_nk_A0,selected_vars_tau1,drop=FALSE]), y=prediction_mu_new1_TR$predictions, method= "ranger", trControl=ctrl_mu, tuneGrid=generate_tune_grid(length(index_nk_A0),length(selected_vars_tau1),0), importance="none", num.trees=generate_num_tree(length(index_nk_A0)) )
-    pred_tau1[9,index]=predict(tau1_rf_TR$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-    mtry_tau1=c(mtry_tau1,tau1_rf_TR$bestTune$mtry)
-    minsize_tau1=c(minsize_tau1,tau1_rf_TR$bestTune$min.node.size)
   
     # Bernoulli f_a(M|X), with the same inner-CV/OOB structure as sparse7.
     x_vars <- select_x_for_m(X[index_nk, , drop = FALSE], M[index_nk, , drop = FALSE])
@@ -1889,7 +1888,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t, "TR & O-TR accomplished"))
+  log_info(sprintf("Replication %03d/%03d | TR & O-TR | complete",t,tmax))
   set.seed(seed)
   
   #-------------------MSE check-------------
@@ -1913,7 +1912,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   pred_theta[6,]=A/(pred_pi_a[4,])*pred_q[4,]*(Y-pred_mu[4,])+(1-A)/(1-pred_pi_b[4,])*(pred_mu[4,]-pred_tau1[4,])+A/(pred_pi_a[4,])*(pred_tau1[4,]-pred_tau[4,])+pred_tau[4,];#QR2                                 
   pred_theta[7,]=A*pred_q[6,]/(pred_pi_a[6,])*(Y-pred_mu[6,])+(1-A)/(1-pred_pi_a[6,])*(pred_mu[6,]-pred_tau1[6,])+pred_tau1[6,];#TR
   pred_theta[8,]=A/(1-pred_pi_a[7,])*(1-pred_p[4,])/(pred_p[4,])*(Y-pred_mu[7,])+(1-A)/(1-pred_pi_a[7,])*(pred_mu[7,]-pred_tau1[7,])+pred_tau1[7,];#O-TR
-  pred_theta[9,]=A/(1-pred_pi_a[9,])*(1-pred_p[6,])/(pred_p[6,])*(Y-pred_mu[9,])+(1-A)/(1-pred_pi_a[9,])*(pred_mu[9,]-pred_tau1[9,])+pred_tau1[9,];#O-TR2
   pred_theta[10,]=A*f0/f1/(pred_pi_a[10,])*(Y-pred_mu[10,])+(1-A)/(1-pred_pi_a[10,])*(pred_mu[10,]-pred_tau[10,])+pred_tau[10,];#Oracle
   
   theta_hat=rowMeans(pred_theta);
@@ -1926,12 +1924,14 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   file.rename(temp_file, file.path(res_dir, paste0("LD1_", current_time, "_", t, ".rds")))
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
-  log_info(paste("Time=", t ,"saved"))                                           
+  log_info(sprintf("Replication %03d/%03d | results | saved",t,tmax))                                           
   
   c(pred_theta=theta_hat,pred_sig2=sigma_hat,mse_tau,mse_mu,mse_q,mse_pi,mse_tau1,res_mu_tau,sel.rho_pi_a,sel.rho_pi_b,sel.rho_q,sel.rho_p,lambda_mu,lambda_tau1,lambda_tau,mtry_pi,mtry_p,mtry_mu,mtry_tau1,mtry_tau,minsize_pi,minsize_p,minsize_mu,minsize_tau1,minsize_tau)
 }
 
 stopCluster(cl)
+cl <- NULL
+foreach::registerDoSEQ()
 pred_theta=results_par[,1:num_totest]
 bias=apply(pred_theta-theta,2,median)
 pred_sig2=results_par[,(num_totest+1):(2*num_totest)];   

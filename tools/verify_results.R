@@ -144,8 +144,9 @@ verify_archive_results <- function(archive_root) {
   real <- loaded("real.RData")
   stopifnot(identical(real$source_id, "real"),
             identical(real$replication_ids, 1:100),
-            identical(real$method_names, c("MQR2", "O-TR'", "QR2", "TR", "O-TR")),
-            identical(dim(real$results_par), c(100L, 35L)))
+            identical(real$method_names, c("MQR2", "O-TR'", "QR1", "QR2", "TR", "O-TR")),
+            identical(real$paper_method_names, c("TR", "O-TR", "QR1", "QR2", "O-TR'", "MQR2")),
+            identical(dim(real$results_par), c(100L, 42L)))
   recomputed <- recompute_real_results(real)
   for (field in names(recomputed)) equal(real[[field]], recomputed[[field]])
   matrices <- c("pred_theta", "pred_theta0", "pred_theta1", "pred_sig2",
@@ -158,13 +159,13 @@ verify_archive_results <- function(archive_root) {
     x
   })
   recipe <- real$source_recipe
-  stopifnot(nrow(recipe) == 5L, identical(recipe$method, real$method_names),
+  stopifnot(nrow(recipe) == 6L, identical(recipe$method, real$method_names),
             all(recipe$source_row_start == 1L), all(recipe$source_row_end == 100L),
             all(recipe$replication_id_start == 1L), all(recipe$replication_id_end == 100L),
             all(recipe$source_file == basename(recipe$source_file)),
             all(grepl("^[0-9a-f]{32}$", recipe$source_md5)))
   display <- real$manuscript_display
-  stopifnot(nrow(display) == 48L, is.character(display$table_display))
+  stopifnot(nrow(display) == 57L, is.character(display$table_display))
   for (i in seq_len(nrow(display))) {
     row <- display[i, ]
     method <- if (row$method == "Common ATE") real$method_names[[1L]] else row$method
@@ -179,6 +180,122 @@ verify_archive_results <- function(archive_root) {
     stopifnot(identical(actual, expected))
   }
   checked <- checked + nrow(display)
+  # Validate the final source mapping. The raw author-side inputs are kept outside
+  # the self-contained reviewer archive and receive additional checks when present.
+  # QR1 has historical method column 5, but local source column 1 in its saved file.
+  selection <- read.csv(file.path(archive_root, "provenance", "source_selection.csv"),
+                        stringsAsFactors = FALSE, check.names = FALSE)
+  required_qscale_cases <- paste0("simu_4_N", c(600L, 1000L, 1400L, 1800L))
+  allowed_qscale_cases <- c(required_qscale_cases, paste0("simu_6_", c(1L, 3L, 5L, 6L)))
+  qscale_algorithm <- "TR/O-TR only; q-scale type-7 truncation; outer-training A=1 reference"
+  qscale_cases <- unique(selection$configuration[selection$source_algorithm == qscale_algorithm])
+  stopifnot(all(required_qscale_cases %in% qscale_cases), all(qscale_cases %in% allowed_qscale_cases),
+            length(qscale_cases) >= 4L, length(qscale_cases) <= 8L,
+            nrow(selection) == 78L + 2L * length(qscale_cases),
+            setequal(selection$configuration, c(names(cases), "real")),
+            !anyDuplicated(paste(selection$configuration, selection$method)),
+            all(selection$source_file == basename(selection$source_file)),
+            all(selection$source_row_start == 1L), all(selection$source_row_end == 100L))
+  for (id in names(cases)) {
+    selected <- selection[selection$configuration == id, , drop = FALSE]
+    expected_methods <- c("MQR1", "MQR2", "QR1")
+    expected_local_columns <- c(1L, 2L, 1L)
+    expected_legacy_columns <- c(1L, 2L, 5L)
+    if (id %in% qscale_cases) {
+      expected_methods <- c(expected_methods, "TR", "O-TR")
+      expected_local_columns <- c(expected_local_columns, 1L, 2L)
+      expected_legacy_columns <- c(expected_legacy_columns, 7L, 8L)
+    }
+    stopifnot(nrow(selected) == length(expected_methods),
+              setequal(selected$method, expected_methods),
+              all(selected$source_local_column[match(expected_methods, selected$method)] == expected_local_columns),
+              all(selected$source_legacy_method_column[match(expected_methods, selected$method)] == expected_legacy_columns))
+  }
+  real_selected <- selection[selection$configuration == "real", , drop = FALSE]
+  real_methods <- c("MQR2", "O-TR'", "QR1", "QR2", "TR", "O-TR")
+  at <- match(real_methods, real_selected$method)
+  stopifnot(nrow(real_selected) == 6L, setequal(real_selected$method, real_methods),
+            identical(real_selected$source_method[at], real_methods),
+            identical(as.integer(real_selected$source_local_column[at]), c(1L,2L,3L,4L,1L,2L)),
+            identical(as.integer(real_selected$source_legacy_method_column[at]), c(2L,3L,5L,6L,7L,8L)),
+            length(unique(real_selected$source_file[at[1:4]])) == 1L,
+            length(unique(real_selected$source_file[at[5:6]])) == 1L,
+            length(unique(real_selected$source_file)) == 2L)
+  merge_audit <- file.path(dirname(archive_root), "author_only", "build_audit")
+  has_author_inputs <- dir.exists(merge_audit)
+  if (has_author_inputs) {
+    manifest <- read.csv(file.path(merge_audit, "rerun_source_manifest.csv"),
+                         stringsAsFactors = FALSE, check.names = FALSE)
+    stopifnot(nrow(manifest) == 50L + length(qscale_cases),
+              !anyDuplicated(manifest$source_file),
+              setequal(manifest$source_file, selection$source_file),
+              all(basename(manifest$source_path) == manifest$source_file),
+              sum(startsWith(manifest$source_path, "rerun_results/")) == 48L,
+              sum(startsWith(manifest$source_path, "../real_final_update/raw_sources/")) == 2L,
+              sum(startsWith(manifest$source_path, "../qscale_update/raw_sources/")) == length(qscale_cases))
+    source_paths <- file.path(merge_audit, manifest$source_path)
+    stopifnot(all(file.exists(source_paths)),
+              identical(unname(tools::md5sum(source_paths)), manifest$source_md5))
+  }
+  for (i in seq_len(nrow(selection))) {
+    row <- selection[i, ]
+    result <- loaded(paste0(row$configuration, ".RData"))
+    if (has_author_inputs) {
+      source_index <- match(row$source_file, manifest$source_file)
+      stopifnot(!is.na(source_index), manifest$source_md5[source_index] == row$source_md5)
+      source_file <- source_paths[source_index]
+      stopifnot(identical(unname(tools::md5sum(source_file)), row$source_md5))
+      e <- new.env(parent = baseenv())
+      load(source_file, envir = e)
+      input <- as.list(e)
+      stopifnot(identical(input$replication_ids, 1:100),
+                input$method_names[row$source_local_column] == row$source_method,
+                input$N == result$N, input$seed == result$seed)
+      if (row$configuration %in% qscale_cases && row$method %in% c("TR", "O-TR")) {
+        stopifnot(identical(input$method_names, c("TR", "O-TR")),
+                  identical(as.integer(input$method_columns), c(1L, 2L)),
+                  identical(as.integer(input$historical_method_columns), c(7L, 8L)),
+                  input$historical_method_columns[row$source_local_column] == row$source_legacy_method_column)
+      } else {
+        stopifnot(input$method_columns[row$source_local_column] == row$source_legacy_method_column)
+      }
+      fields <- if (row$configuration == "real") matrices else c("pred_theta", "pred_sig2")
+      for (field in fields) stopifnot(identical(
+        as.numeric(result[[field]][, row$method]),
+        as.numeric(input[[field]][, row$source_local_column])))
+    }
+    if (row$configuration == "real") {
+      source_map <- result$source_recipe[result$source_recipe$method == row$method, , drop = FALSE]
+      stopifnot(nrow(source_map) == 1L)
+    } else {
+      source_map <- result$source_map[result$source_map$method == row$method, , drop = FALSE]
+      stopifnot(nrow(source_map) == 100L, identical(source_map$source_row, 1:100))
+    }
+    stopifnot(all(source_map$source_file == row$source_file),
+              all(source_map$source_md5 == row$source_md5),
+              all(source_map$source_column == row$source_local_column))
+  }
+  if (has_author_inputs) {
+    preservation <- read.csv(file.path(merge_audit, "merge_verification.csv"), stringsAsFactors = FALSE)
+    qscale_preservation <- preservation[preservation$action == "replace_from_qscale", , drop = FALSE]
+    expected_qscale_preservation <- expand.grid(
+      configuration = qscale_cases, method = c("TR", "O-TR"),
+      field = c("pred_theta", "pred_sig2"), stringsAsFactors = FALSE)
+    preservation_key <- function(x) paste(x$configuration, x$method, x$field, sep = ":")
+    stopifnot(!anyDuplicated(preservation_key(qscale_preservation)),
+              setequal(preservation_key(qscale_preservation), preservation_key(expected_qscale_preservation)),
+              all(qscale_preservation$n_values == 100L))
+    stopifnot(nrow(preservation) == 450L, all(preservation$exact_values),
+              all(preservation$max_abs_difference == 0),
+              sum(preservation$action == "preserve_original" & preservation$configuration != "real" & preservation$field != "theta") == 240L - 4L * length(qscale_cases),
+              sum(preservation$action == "replace_from_qscale" & preservation$configuration %in% qscale_cases) == 4L * length(qscale_cases),
+              sum(preservation$action == "replace_from_qscale" & !preservation$configuration %in% qscale_cases) == 0L,
+              sum(preservation$action == "replace_from_real_final" & preservation$configuration == "real") == 42L,
+              sum(preservation$action != "replace_from_real_final" & preservation$configuration == "real") == 0L)
+  }
+  merged_manifest <- read.csv(file.path(archive_root, "provenance", "merged_results_md5.csv"), stringsAsFactors = FALSE)
+  stopifnot(nrow(merged_manifest) == 25L, setequal(merged_manifest$file, paste0("results/", expected_files)),
+            identical(unname(tools::md5sum(file.path(archive_root, merged_manifest$file))), merged_manifest$md5))
   message("PASS: 25 final RData files, 100 repetitions/splits each, and ",
           checked, " displayed table values recomputed.")
   invisible(TRUE)
