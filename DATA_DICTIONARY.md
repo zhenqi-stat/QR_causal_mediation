@@ -11,7 +11,7 @@ help("ACTG175", package = "speff2trial")
 
 Package source and documentation: https://CRAN.R-project.org/package=speff2trial and https://cran.r-project.org/web/packages/speff2trial/speff2trial.pdf.
 
-The code keeps `offtrt == 0`, `r == 1`, and `arms != 3`, preserving the original row order. This yields 780 participants (253 with `treat == 0`, 527 with `treat == 1`). None of the selected analysis variables is missing. No imputation is applied. The source data remain available through the package and are not duplicated in `results/`.
+The code keeps `offtrt == 0`, `r == 1`, and `arms != 3`, preserving the original row order. This yields 780 participants (253 with `treat == 0`, 527 with `treat == 1`). None of the selected analysis variables is missing. No imputation is applied. The supplied `data/ACTG175_raw.csv` preserves the original source values and row order. `prepare_data.R` regenerates the supplied analysis CSV and RDS under `output/data_preparation/`. File descriptions and source attribution are in `data/README.md`; `data/variables.csv` gives the variable dictionary for both CSV files.
 
 | Source variable | Type and unit or coding | Role |
 | --- | --- | --- |
@@ -38,6 +38,8 @@ The code keeps `offtrt == 0`, `r == 1`, and `arms != 3`, preserving the original
 Each `configurations/simu_*.R` file defines a DGP, generates a pool of `N * tmax` observations with `tmax = 100`, and defines `X_all` (covariates), `A_all` (binary treatment), `M_all` (mediators), `Y_all` (outcome), and the true nuisance functions. `tau_all` is the true integrated outcome regression evaluated on that pool. The target is the finite-pool average `theta = mean(tau_all)`. Each replication uses its designated `N`-row block. Changing the executed replication subset does not change `tmax` or the generated pool.
 
 `configuration_index.rds` is an R list with a `cases` component containing the 24 configuration records (`id`, `group`, `config`, `path`, `theta`, `N`, `seed`, `tmax`). `source_manifest.csv` maps configuration implementations to the saved results. `table_map.csv` maps the public entrypoints to the manuscript tables.
+
+Each `run_all.R --fit` execution creates `output/full_run/<run_directory>/run_manifest.csv`. Its rows identify the 24 simulation configurations and real-data analysis by `source_id`, with relative `result_file` paths, `result_md5` checksums, and `status`. All 25 rows must be complete before table generation. The full-run `tables/` folder contains new summaries and comparisons with the supplied manuscript tables. `comparison.csv` uses table, configuration, method, and metric as keys and records both unrounded and printed values. `comparison_summary.csv` reports the number of matching cells for each table.
 
 ## Final simulation results
 

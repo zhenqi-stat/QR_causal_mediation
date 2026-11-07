@@ -82,6 +82,19 @@ verify_archive_results <- function(archive_root) {
   expected_files <- c(paste0(names(cases), ".RData"), "real.RData")
   files <- list.files(directory, pattern = "[.]RData$")
   stopifnot(length(files) == 25L, setequal(files, expected_files))
+  source_manifest <- read.csv(file.path(archive_root, "source_manifest.csv"),
+                              stringsAsFactors = FALSE)
+  expected_ids <- c(names(cases), "real")
+  stopifnot(nrow(source_manifest) == 25L, !anyDuplicated(source_manifest$id),
+            setequal(source_manifest$id, expected_ids))
+  source_manifest <- source_manifest[match(expected_ids, source_manifest$id), , drop = FALSE]
+  stopifnot(identical(source_manifest$result_file, paste0("results/", expected_files)))
+  actual_md5 <- unname(tools::md5sum(file.path(archive_root, source_manifest$result_file)))
+  mismatch <- which(is.na(source_manifest$result_md5) | actual_md5 != source_manifest$result_md5)
+  if (length(mismatch)) {
+    stop("source_manifest.csv result MD5 mismatch: ",
+         paste(source_manifest$id[mismatch], collapse = ", "), call. = FALSE)
+  }
   methods <- c("MQR1", "MQR2", "O-TR'", "QR1", "QR2", "TR", "O-TR", "Oracle")
   equal <- function(x, y) {
     stopifnot(isTRUE(all.equal(x, y, tolerance = 1e-12)))

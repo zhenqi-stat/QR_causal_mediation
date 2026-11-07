@@ -12,84 +12,12 @@
   dirname(normalizePath(tail(paths, 1L), mustWork = TRUE))
 }
 archive_root <- .table_root()
-source(file.path(archive_root, "tools", "verify_results.R"), local = TRUE)
-verify_archive_results(archive_root)
-table_directory <- file.path(archive_root, "tables")
-dir.create(table_directory, showWarnings = FALSE)
-load_result <- function(id) {
-  env <- new.env(parent = baseenv())
-  load(file.path(archive_root, "results", paste0(id, ".RData")), envir = env)
-  as.list(env)
+source(file.path(archive_root, "tools", "table_workflow.R"), local = TRUE)
+arguments <- commandArgs(trailingOnly = TRUE)
+if (!length(arguments)) {
+  .workflow_render(archive_root)
+} else if (length(arguments) == 2L && arguments[[1L]] == "--manifest") {
+  .workflow_render(archive_root, arguments[[2L]])
+} else {
+  stop("Usage: Rscript reproduce_tables.R [--manifest /path/to/run_manifest.csv]")
 }
-cases <- readRDS(file.path(archive_root, "configuration_index.rds"))$cases
-table_map <- utils::read.csv(file.path(archive_root, "table_map.csv"),
-                             stringsAsFactors = FALSE)
-table_stem <- function(entrypoint) {
-  mapping <- table_map[table_map$entrypoint == entrypoint, , drop = FALSE]
-  stopifnot(nrow(mapping) == 1L)
-  paste0(tolower(mapping$document), "_table_", mapping$table)
-}
-table_stems <- vapply(paste0("simu_", 1:6, ".R"), table_stem, character(1))
-for (group in 1:6) {
-  selected <- Filter(function(x) identical(as.integer(x$group), group), cases)
-  summary_rows <- list()
-  display_rows <- list()
-  latex_rows <- character()
-  for (case in selected) {
-    result <- load_result(case$id)
-    summary <- result$table_summary
-    summary_rows[[case$id]] <- cbind(
-      configuration = case$id, N = case$N, selector = case$config, summary)
-    display <- data.frame(
-      configuration = case$id, method = summary$method,
-      Bias = sprintf("%.3f", summary$bias), RMSE = sprintf("%.3f", summary$RMSE),
-      AL = sprintf("%.3f", summary$AL), AC = sprintf("%.2f", summary$AC),
-      stringsAsFactors = FALSE)
-    display_rows[[case$id]] <- display
-    latex_rows <- c(latex_rows, paste0("% ", case$id),
-      vapply(seq_len(nrow(display)), function(i) {
-        paste0(paste(unlist(display[i, c("method", "Bias", "RMSE", "AL", "AC")]),
-                     collapse = " & "), " \\\\")
-      }, character(1)), "")
-  }
-  stem <- file.path(table_directory, table_stems[group])
-  utils::write.csv(do.call(rbind, summary_rows), paste0(stem, ".csv"), row.names = FALSE)
-  utils::write.csv(do.call(rbind, display_rows), paste0(stem, "_display.csv"), row.names = FALSE)
-  writeLines(latex_rows, paste0(stem, "_rows.tex"))
-}
-real <- load_result("real")
-aggregate <- recompute_real_results(real)
-# Keep all six saved methods intact; export the five rows in Main Table 6.
-real_table_methods <- c("TR", "O-TR", "QR2", "O-TR'", "MQR2")
-stopifnot(all(real_table_methods %in% real$method_names))
-summary <- aggregate$result_summary[
-  match(real_table_methods, aggregate$result_summary$method), , drop = FALSE]
-real_stem <- file.path(table_directory, table_stem("real.R"))
-utils::write.csv(summary, paste0(real_stem, ".csv"), row.names = FALSE)
-format_p <- function(x) ifelse(x < .001, sprintf("%.1e", x), sprintf("%.3f", x))
-display <- data.frame(
-  method = summary$method,
-  theta = sprintf("%.3f", summary$theta), theta_length = sprintf("%.3f", summary$theta_length),
-  NDE = sprintf("%.3f", summary$NDE), NDE_length = sprintf("%.3f", summary$NDE_length),
-  NDE_p = format_p(summary$NDE_p), NIE = sprintf("%.3f", summary$NIE),
-  NIE_length = sprintf("%.3f", summary$NIE_length), NIE_p = format_p(summary$NIE_p),
-  proportion = sprintf("%.2f", 100 * summary$proportion), stringsAsFactors = FALSE)
-# Check every printed string against the saved manuscript display, not only rounded numerics.
-for (i in seq_len(nrow(real$manuscript_display))) {
-  row <- real$manuscript_display[i, ]
-  if (!row$method %in% real_table_methods) next
-  actual <- display[match(row$method, display$method), row$metric]
-  stopifnot(identical(unname(actual), row$table_display))
-}
-utils::write.csv(display, paste0(real_stem, "_display.csv"), row.names = FALSE)
-latex_rows <- vapply(seq_len(nrow(display)), function(i) {
-  row <- unlist(display[i, ])
-  row[length(row)] <- paste0(row[length(row)], "\\%")
-  paste0(paste(row, collapse = " & "), " \\\\")
-}, character(1))
-common <- data.frame(ATE = sprintf("%.3f", summary$ATE[1]),
-  ATE_length = sprintf("%.3f", summary$ATE_length[1]), ATE_p = format_p(summary$ATE_p[1]))
-utils::write.csv(common, paste0(real_stem, "_common_ATE.csv"), row.names = FALSE)
-writeLines(c(latex_rows, "", paste0("% Common ATE: ", paste(unlist(common), collapse = ", "))),
-           paste0(real_stem, "_rows.tex"))
-message("Regenerated main Tables 4-6 and supplementary Tables 7-10 in: ", table_directory)

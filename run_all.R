@@ -10,19 +10,9 @@ if (!length(.master_paths)) stop("Run with source() or Rscript.")
 archive_root <- dirname(normalizePath(tail(.master_paths, 1L), mustWork = TRUE))
 arguments <- commandArgs(trailingOnly = TRUE)
 if (length(setdiff(arguments, "--fit"))) stop("Usage: Rscript run_all.R [--fit]")
+source(file.path(archive_root, "tools", "table_workflow.R"), local = TRUE)
 if (!"--fit" %in% arguments) {
-  source(file.path(archive_root, "reproduce_tables.R"), local = TRUE)
+  .workflow_render(archive_root)
 } else {
-  source(file.path(archive_root, "tools", "archive_runtime.R"), local = TRUE)
-  cases <- readRDS(file.path(archive_root, "configuration_index.rds"))$cases
-  for (case in cases) {
-    configuration_key <- if (case$group <= 4) "n" else if (case$group == 5) "signal" else "ell"
-    configuration_tag <- paste0(configuration_key, "_", gsub(".", "p",
-      format(case$config, scientific = FALSE, trim = TRUE), fixed = TRUE))
-    message("Starting simu_", case$group, " | ", configuration_tag)
-    run_archive(case$group, case$config, replication_ids = 1:100, archive_root = archive_root)
-    gc(verbose = FALSE)
-  }
-  message("Starting real | dataset_actg175")
-  run_archive("real", replication_ids = 1:100, archive_root = archive_root)
+  .workflow_full_fit(archive_root)
 }

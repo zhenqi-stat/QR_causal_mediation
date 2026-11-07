@@ -26,6 +26,19 @@
 }
 
 archive_root <- .verification_root()
+arguments <- commandArgs(trailingOnly = TRUE)
+manifest <- NULL
+manifest_option <- which(arguments == "--manifest")
+if (length(manifest_option)) {
+  if (length(manifest_option) != 1L || manifest_option == length(arguments)) {
+    stop("Usage: Rscript verify.R [--dgp] [--manifest /path/to/run_manifest.csv]")
+  }
+  manifest <- arguments[manifest_option + 1L]
+  arguments <- arguments[-c(manifest_option, manifest_option + 1L)]
+}
+if (length(setdiff(arguments, "--dgp"))) {
+  stop("Usage: Rscript verify.R [--dgp] [--manifest /path/to/run_manifest.csv]")
+}
 checksum_file <- file.path(archive_root, "file_checksums.csv")
 checksums <- utils::read.csv(checksum_file, stringsAsFactors = FALSE)
 stopifnot(nrow(checksums) > 25L, !anyDuplicated(checksums$path))
@@ -61,9 +74,14 @@ message("PASS: checksums, ", length(r_files), " R source files, 24 configuration
 source(file.path(archive_root, "tools", "verify_results.R"), local = TRUE)
 verify_archive_results(archive_root)
 
-if ("--dgp" %in% commandArgs(trailingOnly = TRUE)) {
+if ("--dgp" %in% arguments) {
   source(file.path(archive_root, "tools", "verify_dgp.R"), local = TRUE)
   result <- verify_archive_dgp(archive_root)
   print(result, row.names = FALSE)
   message("PASS: 24 finite-pool targets and 2,400 Oracle estimates/variances; no nuisance-model fitting.")
+}
+
+if (!is.null(manifest)) {
+  source(file.path(archive_root, "tools", "table_workflow.R"), local = TRUE)
+  .workflow_render(archive_root, manifest)
 }
