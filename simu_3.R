@@ -95,20 +95,10 @@ tmax=100;Kmb=5;value_trunc=5;n=floor(N/Kmb)
 seed=2026;limit=rerun_workers
 set.seed(seed)
 #--------data generating--------------
-# if (Setting=="a")
 # Setting a: non-logistic pi, nonlinear mu
-# func_link=function(x){(abs(x)+sin(x)+0.1)/(abs(x)+sin(x)+0.7)}
 func_link=function(x){plogis(x)}
-# func_link=function(x){0.2+0.6/(1+abs(x)^3)} #non-logistic function
-#func_link=function(x){pnorm(x)-1/2}
 beta_pi_i=0.5
-# raw = 1 / sqrt(1:20)
-# beta_pi_X = raw / sqrt(sum(raw^2)) * sqrt(3)
-# beta_pi_X = c(beta_pi_X, rep(0, d1 - 20))
-# beta_pi_X=c(1, rep(sqrt(0.2),19),rep(0,d1-20))
-# beta_pi_X = c(rep(1, 3), rep(0.35, 17), rep(0, d1 - 20))
 beta_pi_X = c(0.6, rep(0.2,4), rep(0,d1-5))
-# beta_pi_X = c(rep(1,3), rep(0,d1-3))
 
 beta_mu_i=1
 beta_mu_X=c(rep(0.5,5),rep(0,d1-5))
@@ -119,14 +109,11 @@ beta_mu_nl=c(rep(0,3),rep(0,7),rep(0,d1-s_nl))
 
 #X_all follows the normal distribution. 
 X_all=matrix(rtruncnorm(N*d1*tmax,-value_trunc,value_trunc,mean=0),nrow=N*tmax)
-#X_all=matrix(rbeta(N*d1*tmax,1,2),nrow=N*tmax)-1/3
-#X_all <- matrix(rsn(N*d1*tmax, xi = 0, omega = 1.3, alpha = 5),nrow=N*tmax)-0-1.3*5/sqrt(1 + 5^2)*sqrt(2 / pi)
 
 #pi and A
 pi_all=func_link(beta_pi_i+X_all%*%beta_pi_X)
 A_all=rbinom(N*tmax,1,pi_all)
 
-# delta1_all=c(0.8,0.2,0.2,rep(0,d2-3))
 delta1_all = c(1.10,0.55,rep(0,d2-2))
 delta2_all = c(rep(0.45,3),rep(0,d2-3))
 delta2=delta2_all[1]
@@ -147,7 +134,6 @@ for (i in 1:d1){
     } else if (abs(i-j)==2){
       Phi[i,j]=0
     }
-    #  Phi[i,j]=0.3^(abs(i-j))
   }
 }
 
@@ -209,8 +195,6 @@ rm(phi_dense_codes,phi_dense_units)
 
 #Sigma & U
 Sigma=diag(d2)
-# Sigma[1,2]=0.3; Sigma[2,1]=0.3
-# Sigma[1,3]=0.5; Sigma[3,1]=0.5
 for (i in 1:d2){
   for (j in 1:d2){
     if (abs(i-j)==1){
@@ -242,7 +226,6 @@ U_tot_all=scale_Me*U_all+delta2_all_matrix+A_all*delta1_all_matrix
 
 #q
 Inverse=diag(d2)/(scale_Me)^2
-# Inverse[1:3,1:3]=solve(scale_Me^2*Sigma[1:3,1:3])
 Inverse=solve(scale_Me^2*Sigma)
 beta_q_i=as.numeric((delta2_all+1/2*delta1_all)%*%(Inverse%*%delta1_all))
 beta_q_X=scale_XM*Phi%*%(Inverse%*%delta1_all)
@@ -266,20 +249,8 @@ scale_xsq=0
 #mu_all
 bsm_all=scale_XM*(X_all)%*%Phi+common_nonlinear_all+delta2_all_matrix
 mu_all=beta_mu_i+(M_all-bsm_all)%*%beta_mu_M+X_all%*%beta_mu_X
-# scale_mix* (U_tot_all[,s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*((U_tot_all[,1]>=delta2_all[1]))*(X_all%*%beta_mu_X)+scale_xsq*rowSums((X_all[,1:3])^2*(U_tot_all[,1:3]-delta2_all_matrix[,1:3]))
-#+exp(scale_exp*(U_tot_all)%*%delta4_all)+scale_mue*(U_tot_all)^2%*%delta3_all
-#+scale_mix*((U_all[,d2]>0)*M_all[,d2-1]*X_all[,1]+(U_all[,d2-1]>0)*M_all[,d2-2]*X_all[,2]+(U_all[,d2-2]>0)*M_all[,d2]*X_all[,3])
-#+(X_all%*%Phi*U_all)%*%beta_mu_mix+scale_abs*abs(U_all)%*%delta4_all
 
-#tau_all
-# bsm_all=scale_XM*(X_all)%*%Phi+delta2_all_matrix
-#tau1_all & tau_all
-tau_all=beta_mu_i+X_all%*%beta_mu_X#+bsm_all%*%beta_mu_M
-# +scale_mue*as.vector((diag(Sigma)+delta2_all^2)%*%delta3_all)+scale_mix*(delta2_all[s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*(1-pnorm(0))*(X_all%*%beta_mu_X)
-#+as.vector(exp(scale_exp*delta4_all%*%delta2_all+0.5*scale_exp^2*scale_Me^2*delta4_all%*%(Sigma%*%delta4_all)))
-#+scale_mix/2*(delta2)*(X_all[,1]+X_all[,2]+X_all[,3])
-#+scale_abs*sum(sqrt(2/base::pi)*delta4_all)
-#+scale_sub*0*(3-pnorm(delta1_all[1])-pnorm(delta1_all[2])-pnorm(delta1_all[3]))*X_all%*%beta_mu_X
+tau_all=beta_mu_i+X_all%*%beta_mu_X
 tau1_all=tau_all
 
 #theta
@@ -326,25 +297,10 @@ standardize_data <- function(X_train, X_test = NULL) {
 }
 # Lasso 变量筛选函数（自动标准化）
 lasso_var_selection <- function(X, y, task = 0) {
-  # std_result <- standardize_data(X)
-  # X_scaled <- std_result$train
-  # if (task == 1) {  # 分类任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "binomial", alpha = 1)
-  # } else {          # 回归任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "gaussian", alpha = 1)
-  # }
-  # beta <- coef(fit, s = "lambda.min")
-  # selected_vars <- rownames(beta)[which(abs(beta)>1e-6)][-1]
-  # if(length(selected_vars)==0){
-  # rf <- ranger(y ~ ., data = data.frame(X=X, y=y), importance = "impurity", num.trees=50)
-  # importance<-importance(rf)
-  # selected_vars <- names(importance)[importance > mean(importance)- sd(importance)]#
-  # # }
-  # if(length(selected_vars)==0){selected_vars=colnames(X)}
   selected_vars=colnames(X)  
   selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
   selected_vars <- gsub("^M\\.", "", selected_vars)
-  return(list(selected_vars = selected_vars))#, model = fit
+  return(list(selected_vars = selected_vars))
 }
 
 select_different_M_components_ks <- function(
@@ -537,18 +493,8 @@ multi_y_var_selection <- function(X, M) {
     rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=100)
     importance<-importance(rf)
     selected_vars <- names(importance)[importance > mean(importance)+sd(importance)]#
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)+1/2*sd(importance)]}
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)]}
-    # if(length(selected_vars)==0){selected_vars=colnames(X)} else{
     selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
     selected_vars <- gsub("^M\\.", "", selected_vars)
-    # }
     
     # 存储结果
     all_selected_vars[[y_names[i]]] <- selected_vars
@@ -646,9 +592,7 @@ fit_mv_rf_cf <- function(X_train, M_train, K = 3,
   )
   
   cv_loss <- matrix(NA_real_, nrow = nrow(tune_grid), ncol = K)
-  
-  
-  
+
   for (v in seq_len(K)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -840,8 +784,6 @@ make_stratified_fold_id <- function(A, K = 3, seed = 123) {
   
   fold_id
 }     
-
-
 
 el_drm_raw_q <- function(M) {
   M <- as.matrix(M)
@@ -1364,15 +1306,7 @@ el_drm_fit_density_ratio <- function(
     n_fit <- nrow(x_fit)
     x_dim_fit <- ncol(x_fit)
     q_dim_fit <- ncol(q_fit)
-    
-    # # Do not penalize intercept-related coefficients
-    # penalty_mask <- rep(1, 2 * x_dim_fit * q_dim_fit)
-    
-    # intercept_idx0 <- 1 + (0:(q_dim_fit - 1)) * x_dim_fit
-    # intercept_idx1 <- x_dim_fit * q_dim_fit + intercept_idx0
-    
-    # penalty_mask[c(intercept_idx0, intercept_idx1)] <- 0
-    
+
     if (is.null(eta_fit)) {
       eta_fit <- 1 / max(q_dim_fit + ridge_lambda, 1)
     }
@@ -1388,7 +1322,6 @@ el_drm_fit_density_ratio <- function(
       }
       if (is.null(prof) || !is.finite(prof$loss)) return(Inf)
       prof$loss / n_fit + 0.5 * ridge_lambda * sum(theta^2)
-      # prof$loss / n_fit + 0.5 * ridge_lambda * sum((penalty_mask * theta)^2)
     }
     
     prof_cur <- el_drm_approx_loss_grad(theta_cur, x_fit, q_fit, A_fit, p_fit)
@@ -1481,7 +1414,6 @@ el_drm_fit_density_ratio <- function(
       objective = objective(theta_cur, prof_final),
       loss = prof_final$loss / n_fit,
       ridge_lambda = ridge_lambda,
-      # eta = eta_fit
       eta = eta_cur  
     )
   }
@@ -1674,9 +1606,6 @@ cat("\n summary(pi_all)=",paste(capture.output(summary(pi_all)), collapse = "\n"
 cat("\n\n summary(p_all)=",paste(capture.output(summary(p_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
 cat("\n\n summary(1/(1+q_all))=",paste(capture.output(summary(1/(1+q_all))), collapse = "\n"), "\n", file = log_file, append = TRUE)
 
-#num_cores <- detectCores()
-#print(paste("Available cores:", num_cores))
-
 cl <- makeCluster(min(limit,length(rerun_replication_ids)),outfile=archive_log_file)  # 使用核心数减 1，保留一个核心给操作系统
 registerDoParallel(cl)
 invisible(parallel::clusterCall(cl,function() {
@@ -1732,7 +1661,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   pi=pi_all[(t-1)*N+1:N];
   p=p_all[(t-1)*N+1:N];
   q=q_all[(t-1)*N+1:N];
-  f0=f_0_all[(t-1)*N+1:N];#可以删掉
+  f0=f_0_all[(t-1)*N+1:N];
   f1=f_1_all[(t-1)*N+1:N];
   tau=tau_all[(t-1)*N+1:N];
   tau1=tau1_all[(t-1)*N+1:N];
@@ -1740,8 +1669,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   set.seed(seed)  
   
   #polynomial transform
-  #X_poly=poly(X,degree=2);M_poly=poly(M,degree=2);
-  #S_poly=poly(cbind(X,M),degree=2);
   X_poly=X;S_poly=cbind(X,M);M_poly=M;  
   
   #Oracle
@@ -1774,7 +1701,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     rm(index_nk_2345,index_train23, index_train45)
     
     #pi_a
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -1787,10 +1713,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_train1)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[1,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[1,index]-pi[index])/pi[index]))
     
     #pi_b
-    # sel.rho_pi_b=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -1804,20 +1728,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[1,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[1,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train1,])/length(index_train2)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*X[index_train1,])/length(index_train2)
-    # iw=as.numeric(A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))
-    # mean(iw)
-    # mean(colSums(iw*X[index_train2,])/length(index_train2))
-    # iw_oracle=as.numeric(A[index_train2]/pi[index_train2]-(1-A[index_train2])/(1-pi[index_train2]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_train2,])/length(index_train2))
-    
+
     #q
-    # sel.rho_q=c()
     S_index2=S_poly[index_train2,]
     rho.range1=sqrt(log(d1+d2)/length(index_train2))*rho.range1_default
     boolFalse=FALSE #repeat until no errors occur
@@ -1833,58 +1745,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_S_index2=colMeans(-S_index2);sd_S_index2=colSds(-S_index2);beta_q_after=rep(0,length(beta_q));beta_q_after[-1]=beta_q[-1]/sd_S_index2;beta_q_after[1]=beta_q[1]-sum((mean_S_index2/sd_S_index2)%*%beta_q[-1]);beta_q_after[1]=-beta_q_after[1]
     beta_q=beta_q_after
     pred_q[1,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]],pred_q[1,index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # max(abs(beta_q[1]+cbind(X[index,],M[index,])%*%beta_q[-1]-beta_q_i-X[index,]%*%beta_q_X-M[index,]%*%beta_q_M))
-    # grad_q=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_train2,],M[index_train2,])%*%beta_q[-1])-(1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_train2)
-    # grad_q_phi=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train2,]%*%Phi-as.numeric((1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*M[index_train2,])/length(index_train2)
-    
+
     #mu
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_train3,],y=Y[index_train3],weights=A[index_train3]*exp(beta_q[1]+S_poly[index_train3,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_train3,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[1,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_train3)))
-    # beta_mu=as.vector(coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[1,index]-mu[index])
-    
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    
+
     #tau1
     index_train4_A0=index_train4[which(A[index_train4]==0)]
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train4_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_train4,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0 || length(pred_mu_new1)<8
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[1,index]=rep(tau1_training_mean,length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_train4_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_train4_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
         pred_tau1[1,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[1,index]
-    
-    #tau1-gamma
-    # lambda_mu=c()
-    # fit_lasso_tau1=cv.glmnet(x=X[index_train4,],y=M[index_train4,]%*%beta_mu[(1+d1+1):(1+d1+d2)], weights=(1-A[index_train4])*exp(alpha_b[1]+X[index_train4,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-    # pred_tau1[1,index]=beta_mu[1]+X[index,]%*%beta_mu[2:(1+d1)]+predict(fit_lasso_tau1,newx=X[index,],s="lambda.min")
-    # lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))
-    
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[1,index_A0]-pred_tau1[1,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[1,index_A0])*(pred_mu[1,index_A0]-pred_tau1[1,index_A0]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new2=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train5,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new2=predict(fit_lasso_mu,newx=S_poly[index_train5,], s="lambda.min")
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_train5))} else{      pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
       }
     y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2)
@@ -1892,16 +1770,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       fit_lasso_tau=cv.glmnet(x=X_poly[index_train5,],y=y_pseudo, weights=A[index_train5]*exp(-alpha_a[1]-X_poly[index_train5,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[1,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    #test: estimation of tau
-    # summary(abs(pred_tau[1,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A])+A[index_A]/(pred_pi_a[1,index_A])*(pred_tau1[1,index_A]-pred_tau[1,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])==max(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index]))];cbind(pred_pi_a[1,index_max_0],pred_pi_b[1,index_max_0],pred_q[1,index_max_0],pred_mu[1,index_max_0],pred_tau1[1,index_max_0],pred_tau[1,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[1,index]=A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])+pred_tau[1,index];summary(pred_theta[1,index])
-    # pred_theta[7,index]=A[index]*pred_q[6,index]/(pred_pi_a[7,index])*(Y[index]-pred_mu[7,index])+(1-A[index])/(1-pred_pi_a[7,index])*(pred_mu[7,index]-pred_tau[7,index])+pred_tau[7,index];
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -1928,7 +1797,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_nk)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[2,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[2,index]-pi[index])/pi[index]))
     
     #pi_b
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
@@ -1944,18 +1812,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[2,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[2,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,])/length(index_nk)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*X[index_train1,])/length(index_nk)
-    # iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))
-    # mean(iw)
-    # (colSums(iw*X[index_nk,])/length(index_nk))
-    # iw_oracle=as.numeric(A[index_nk]/pi[index_nk]-(1-A[index_nk])/(1-pi[index_nk]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_nk,])/length(index_nk))
-    
+
     #q
     S_index2=S_poly[index_nk,]
     rho.range1=sqrt(log(d1+d2)/length(index_nk))*rho.range1_default
@@ -1963,7 +1820,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     while(boolFalse==FALSE){
       tryCatch({
         fit_Log2_1=glm.regu.cv(x=scale(-S_index2), y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=TRUE,tune.cut=FALSE)
-        # fit_Log2_1=glm.regu.cv(x=-S_poly[index_nk,], y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=FALSE,tune.cut=FALSE)
         boolFalse=TRUE
       },error=function(e){
       },finally={})
@@ -1974,29 +1830,14 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     beta_q[1]=-beta_q[1]
     beta_q=beta_q_after
     pred_q[2,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]],pred_q[2,index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # grad_q=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_nk,],M[index_nk,])%*%beta_q[-1])-(1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_nk)
-    # grad_q_phi=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,]%*%Phi-as.numeric((1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*M[index_nk,])/length(index_nk)
-    
+
     #mu
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk_A,],y=Y[index_nk_A],weights=exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_nk_A,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[2,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[2,index]-mu[index])
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
     
     #tau1
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
@@ -2004,17 +1845,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
         pred_tau1[2,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
       }
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[2,index]
-    
-    # summary(1-A[index])/(1-pi[index])*(mu[index]-tau1[index])
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[2,index_A0]-pred_tau1[2,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[2,index_A0])*(pred_mu[2,index_A0]-pred_tau1[2,index_A0]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A,,drop=FALSE],s="lambda.min"))
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_nk_A))} else{
@@ -2026,15 +1857,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau[2,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_nk)))
     }
-    #test: estimation of tau
-    # summary(abs(pred_tau[2,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A])+A[index_A]/(pred_pi_a[2,index_A])*(pred_tau1[2,index_A]-pred_tau[2,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])==max(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index]))];cbind(pred_pi_a[2,index_max_0],pred_pi_b[2,index_max_0],pred_q[2,index_max_0],pred_mu[2,index_max_0],pred_tau1[2,index_max_0],pred_tau[2,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[2,index]=A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])+pred_tau[2,index];summary(pred_theta[2,index])
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -2061,7 +1884,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     #pi using Random forest
     lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -2132,8 +1955,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr1
     )
-    # pred_q[3,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[3,index]=exp(log_ratio_index)
 
     log_info(paste(
       "QR1 fold", k,
@@ -2150,7 +1971,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[3,index]=predict(mu_rf$finalModel, data=cbind(X[index, ],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
 
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk2_A0,],M[index_nk2_A0,])[,selected_vars_mu,drop=FALSE])
@@ -2160,12 +1980,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
     pred_tau1[3,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-    # summary(pred_tau1[3,index])
 
     #tau
-    # prediction_pi_1=pmax(pmin(predict(pi_rf$finalModel, data=X[index_nk3_A,selected_vars_pi,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_p_1=pmax(pmin(predict(p_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A, ])[,selected_vars_p,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_q_1=(1-prediction_p_1)/prediction_p_1*prediction_pi_1/(1-prediction_pi_1)
 
     log_ratio_index_nk3_A <- el_drm_predict_log_ratio(f_el_drm_sdr1,
                                                       X[index_nk3_A, x_vars, drop = FALSE],
@@ -2174,8 +1990,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index_nk3_A,
       ref_log_q = ref_log_q_sdr1
     )
-    # prediction_q_1=exp(pmax(pmin(log_ratio_index_nk3_A, log(100)), log(0.01)))
-    # prediction_q_1=exp(log_ratio_index_nk3_A)
 
     prediction_mu_2=predict(mu_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A,])[,selected_vars_mu,drop=FALSE])
     prediction_tau1_1=predict(tau1_rf$finalModel, data=X[index_nk3_A,selected_vars_tau1,drop=FALSE])
@@ -2187,13 +2001,10 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
 
     pred_tau[3,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
-    # p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif)
     pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2,prediction_tau1_1)
     rm(prediction_q_1)
     gc()
-    # pred_theta[3,index]=A[index]*pred_q[3,index]/(pred_pi_a[3,index])*(Y[index]-pred_mu[3,index])+(1-A[index])/(1-pred_pi_b[3,index])*(pred_mu[3,index]-pred_tau1[3,index])+A[index]/(pred_pi_a[3,index])*(pred_tau1[3,index]-pred_tau[3,index])+pred_tau[3,index];summary(pred_theta[3,index]);
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -2274,8 +2085,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr2_full
     )
-    # pred_q[4,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[4,index]=exp(log_ratio_index)
     log_info(paste(
       "QR2 fold", k,
       "ridge_lambda =", f_el_drm$ridge_lambda,
@@ -2291,7 +2100,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[4,index]=predict(mu_rf$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
   
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk_A0,],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -2301,7 +2109,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau1[4,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
-    # summary(pred_tau1[3,index])
   
     #tau: use full outer-training-fold predictions for the QR2 pseudo-outcome.
     prediction_q_1 <- normalized_truncate_q(
@@ -2321,8 +2128,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau[4,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
     mtry_tau=c(mtry_tau,tau_rf$bestTune$mtry)
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
-    # pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi);p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif);rm(prediction_q_1)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2_preds,prediction_tau1_1)
     gc()
   }
@@ -2339,7 +2144,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     index_nk2=index_nk[-(1:floor(length(index_nk)/2))]
     
     #pi
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -2358,7 +2162,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_pi_b[8,index]=pred_pi_a[5,index]
     
     #p
-    # sel.rho_p=c()
     rho.range0=sqrt(log(d1+d2)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -2376,12 +2179,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_q[8,index]=pred_q[5,index]
     
     #mu-1
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk1[A[index_nk1]==1],],y=Y[index_nk1[A[index_nk1]==1]],family="gaussian",alpha=1)
     pred_mu[5,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk1)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[4,index]-mu[index])
     
     #tau1-1
     pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk2[A[index_nk2]==0],],s="lambda.min")
@@ -2390,30 +2190,13 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau1[5,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
       lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk2)))
     }
-    
-    # #mu-2
-    # # lambda_mu=c()
-    # fit_lasso_mu=cv.glmnet(x=S_poly[index_nk[A[index_nk]==1],],y=Y[index_nk[A[index_nk]==1]],family="gaussian",alpha=1)
-    # pred_mu[8,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
-    # lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # # summary(pred_mu[4,index]-mu[index])
-    
-    # #tau1-2
-    # pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk[A[index_nk]==0],],s="lambda.min")
-    # if (sd(pred_mu_new1_miles)==0){pred_tau1[8,index]=rep(mean(pred_mu_new1_miles),length(index));lambda_tau1=c(lambda_tau1,0)} else{
-    #   fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk[A[index_nk]==0],],y=pred_mu_new1_miles,family="gaussian",alpha=1)
-    #   pred_tau1[8,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
-    #   lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
-    # }
-    
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | O-TR' | complete",t,tmax))
   set.seed(seed)
-  
-  
+
   #-------------TR & O-TR------------------
   for (k in 1:Kmb){
     index=(1:n)+(k-1)*n
@@ -2442,14 +2225,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_pi=c(minsize_pi,pi_rf_TR$bestTune$min.node.size)
     pi_rf_TR=butcher(pi_rf_TR);rm(pi_rf_TR,prediction_pi_TR);gc()
 
-    #p using Random forest-O-TR
     lasso_p <- lasso_var_selection(cbind(X[index_nk,],M[index_nk,]),A[index_nk],task=1)
     selected_vars_p <- lasso_p$selected_vars
-    # selected_M=colnames(M)[select_different_M_components_ks(M[index_nk, ], A[index_nk])]
-    # selected_vars_p <- c(colnames(X[index_nk,]),selected_M)
-    # selected_A1=multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    # selected_A0=multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
-    # selected_vars_p <- unique(c(selected_A1,selected_A0,selected_M))
     p_rf_TR=caret::train(x=cbind(X[index_nk,],M[index_nk,])[,selected_vars_p,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_p),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)) )
     pred_p[4,index]=pmax(pmin(predict(p_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_p,drop=FALSE])$predictions[, 2],0.99), 0.01)
     pred_q[7,index]=(1-pred_p[4,index])/pred_p[4,index]*pred_pi_a[7,index]/(1- pred_pi_a[7,index])
@@ -2484,7 +2261,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[9,index]=pred_mu[6,index]
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
-    # summary(pred_mu[5,index]-mu[index])
 
     #tau1 for O-TR2
     prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=cbind(X[index_nk_A0, ],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -2499,8 +2275,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     selected_M <- 1:ncol(M)
     ds=length(selected_M)
     x_vars <- multi_y_var_selection(X[index_nk, ], M[index_nk, selected_M, drop = FALSE])$union_vars
-    selected_A1=x_vars#multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    selected_A0=x_vars#multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
+    selected_A1=x_vars
+    selected_A0=x_vars
 
     # A=1: inner-CV tuning of mtry and nodesize
     rf_mean_A1 <- fit_mv_rf_cf(
@@ -2515,7 +2291,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_rf_A <- rf_mean_A1$fit
     mean_train_A1 <- rf_mean_A1$oob_pred
     residuals_A1 <- M[index_nk_A, selected_M, drop = FALSE] - mean_train_A1
-
 
     # A=0: independently tune mtry and nodesize
     rf_mean_A0 <- fit_mv_rf_cf(
@@ -2542,13 +2317,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     residuals_A1 <- sweep(residuals_A1, 2, colMeans(residuals_A1), "-")
     residuals_A0 <- sweep(residuals_A0, 2, colMeans(residuals_A0), "-")
     residuals_pool <- rbind(residuals_A1, residuals_A0)
-
-    # cov_result <- compute_shrinkage_cov(residuals_pool, lambda = "auto")
-    # sig_M_pool <- cov_result$matrix
-    # colnames(sig_M_pool) <- colnames(M)[selected_M]
-    # rownames(sig_M_pool) <- colnames(M)[selected_M]
-    # sig_M_A1 <- sig_M_pool
-    # sig_M_A0 <- sig_M_pool
 
     cov_A1 <- compute_shrinkage_cov(residuals_A1, lambda = "auto")
     cov_A0 <- compute_shrinkage_cov(residuals_A0, lambda = "auto")
@@ -2581,10 +2349,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     colnames(mean_pred_A) <- colnames(M)[selected_M]
 
     log_dens_A1<-dmvnorm(M[index, selected_M]-mean_pred_A, sigma=sig_M_A1, log= TRUE)
-    # log_dens_A1<-log(pmax(pmin(exp(log_dens_A1), 0.999), 0.001))
     log_dens_A0<-dmvnorm(M[index, selected_M]-mean_pred_A0, sigma=sig_M_A0, log= TRUE)
-    # log_dens_A0<-log(pmax(pmin(exp(log_dens_A0), 0.999), 0.001))
-    # pred_q[6,index]=pmax(pmin(exp(log_dens_A0 - log_dens_A1),100),0.01)
 
     log_q_test_raw <- log_dens_A0 - log_dens_A1
 
@@ -2593,13 +2358,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       ref_log_q = log_q_train
     )
 
-
     if (!all(is.finite(pred_q[6,index]))) {
       stop("Non-finite density ratio after exponentiation.")
     }
-    # pred_q[6,index]=normalized_truncate_q(log_dens_A0, log_dens_A1,
-    #                                       treated = A[index_nk] == 1)
-    # pred_q[6,index]=exp(log_dens_A0 - log_dens_A1)
 
     # tau_1: reuse the same estimated F0(M|X)
     m_vars <- as.numeric(sub("^M", "", grep("^M", selected_vars_mu, value = TRUE)))
@@ -2673,7 +2434,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   theta_hat-theta;sigma_hat
   
   result=c(pred_theta=theta_hat,pred_sig2=sigma_hat,mse_tau,mse_mu,mse_q,mse_pi,mse_tau1,res_mu_tau,sel.rho_pi_a,sel.rho_pi_b,sel.rho_q,sel.rho_p,lambda_mu,lambda_tau1,lambda_tau,mtry_pi,mtry_p,mtry_mu,mtry_tau1,mtry_tau,minsize_pi,minsize_p,minsize_mu,minsize_tau1,minsize_tau)
-  # result_list=list(result=result)                               
   replication_file <- file.path(archive_replication_directory, sprintf("rep_%03d.rds", t))
   temp_file <- paste0(replication_file, ".tmp")
   saveRDS(result, file = temp_file)
@@ -2701,20 +2461,10 @@ tmax=100;Kmb=5;value_trunc=5;n=floor(N/Kmb)
 seed=2026;limit=rerun_workers
 set.seed(seed)
 #--------data generating--------------
-# if (Setting=="a")
 # Setting a: non-logistic pi, nonlinear mu
-# func_link=function(x){(abs(x)+sin(x)+0.1)/(abs(x)+sin(x)+0.7)}
 func_link=function(x){plogis(x)}
-# func_link=function(x){0.2+0.6/(1+abs(x)^3)} #non-logistic function
-#func_link=function(x){pnorm(x)-1/2}
 beta_pi_i=0.5
-# raw = 1 / sqrt(1:20)
-# beta_pi_X = raw / sqrt(sum(raw^2)) * sqrt(3)
-# beta_pi_X = c(beta_pi_X, rep(0, d1 - 20))
-# beta_pi_X=c(1, rep(sqrt(0.2),19),rep(0,d1-20))
-# beta_pi_X = c(rep(1, 3), rep(0.35, 17), rep(0, d1 - 20))
 beta_pi_X = c(0.6, rep(0.2,4), rep(0,d1-5))
-# beta_pi_X = c(rep(1,3), rep(0,d1-3))
 
 beta_mu_i=1
 beta_mu_X=c(rep(0.5,5),rep(0,d1-5))
@@ -2725,14 +2475,11 @@ beta_mu_nl=c(rep(0,3),rep(0,7),rep(0,d1-s_nl))
 
 #X_all follows the normal distribution. 
 X_all=matrix(rtruncnorm(N*d1*tmax,-value_trunc,value_trunc,mean=0),nrow=N*tmax)
-#X_all=matrix(rbeta(N*d1*tmax,1,2),nrow=N*tmax)-1/3
-#X_all <- matrix(rsn(N*d1*tmax, xi = 0, omega = 1.3, alpha = 5),nrow=N*tmax)-0-1.3*5/sqrt(1 + 5^2)*sqrt(2 / pi)
 
 #pi and A
 pi_all=func_link(beta_pi_i+X_all%*%beta_pi_X)
 A_all=rbinom(N*tmax,1,pi_all)
 
-# delta1_all=c(0.8,0.2,0.2,rep(0,d2-3))
 delta1_all = c(1.10,0.55,rep(0,d2-2))
 delta2_all = c(rep(0.45,3),rep(0,d2-3))
 delta2=delta2_all[1]
@@ -2753,7 +2500,6 @@ for (i in 1:d1){
     } else if (abs(i-j)==2){
       Phi[i,j]=0
     }
-    #  Phi[i,j]=0.3^(abs(i-j))
   }
 }
 
@@ -2815,8 +2561,6 @@ rm(phi_dense_codes,phi_dense_units)
 
 #Sigma & U
 Sigma=diag(d2)
-# Sigma[1,2]=0.3; Sigma[2,1]=0.3
-# Sigma[1,3]=0.5; Sigma[3,1]=0.5
 for (i in 1:d2){
   for (j in 1:d2){
     if (abs(i-j)==1){
@@ -2848,7 +2592,6 @@ U_tot_all=scale_Me*U_all+delta2_all_matrix+A_all*delta1_all_matrix
 
 #q
 Inverse=diag(d2)/(scale_Me)^2
-# Inverse[1:3,1:3]=solve(scale_Me^2*Sigma[1:3,1:3])
 Inverse=solve(scale_Me^2*Sigma)
 beta_q_i=as.numeric((delta2_all+1/2*delta1_all)%*%(Inverse%*%delta1_all))
 beta_q_X=scale_XM*Phi%*%(Inverse%*%delta1_all)
@@ -2872,20 +2615,8 @@ scale_xsq=0
 #mu_all
 bsm_all=scale_XM*(X_all)%*%Phi+common_nonlinear_all+delta2_all_matrix
 mu_all=beta_mu_i+(M_all-bsm_all)%*%beta_mu_M+X_all%*%beta_mu_X
-# scale_mix* (U_tot_all[,s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*((U_tot_all[,1]>=delta2_all[1]))*(X_all%*%beta_mu_X)+scale_xsq*rowSums((X_all[,1:3])^2*(U_tot_all[,1:3]-delta2_all_matrix[,1:3]))
-#+exp(scale_exp*(U_tot_all)%*%delta4_all)+scale_mue*(U_tot_all)^2%*%delta3_all
-#+scale_mix*((U_all[,d2]>0)*M_all[,d2-1]*X_all[,1]+(U_all[,d2-1]>0)*M_all[,d2-2]*X_all[,2]+(U_all[,d2-2]>0)*M_all[,d2]*X_all[,3])
-#+(X_all%*%Phi*U_all)%*%beta_mu_mix+scale_abs*abs(U_all)%*%delta4_all
 
-#tau_all
-# bsm_all=scale_XM*(X_all)%*%Phi+delta2_all_matrix
-#tau1_all & tau_all
-tau_all=beta_mu_i+X_all%*%beta_mu_X#+bsm_all%*%beta_mu_M
-# +scale_mue*as.vector((diag(Sigma)+delta2_all^2)%*%delta3_all)+scale_mix*(delta2_all[s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*(1-pnorm(0))*(X_all%*%beta_mu_X)
-#+as.vector(exp(scale_exp*delta4_all%*%delta2_all+0.5*scale_exp^2*scale_Me^2*delta4_all%*%(Sigma%*%delta4_all)))
-#+scale_mix/2*(delta2)*(X_all[,1]+X_all[,2]+X_all[,3])
-#+scale_abs*sum(sqrt(2/base::pi)*delta4_all)
-#+scale_sub*0*(3-pnorm(delta1_all[1])-pnorm(delta1_all[2])-pnorm(delta1_all[3]))*X_all%*%beta_mu_X
+tau_all=beta_mu_i+X_all%*%beta_mu_X
 tau1_all=tau_all
 
 #theta
@@ -2932,25 +2663,10 @@ standardize_data <- function(X_train, X_test = NULL) {
 }
 # Lasso 变量筛选函数（自动标准化）
 lasso_var_selection <- function(X, y, task = 0) {
-  # std_result <- standardize_data(X)
-  # X_scaled <- std_result$train
-  # if (task == 1) {  # 分类任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "binomial", alpha = 1)
-  # } else {          # 回归任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "gaussian", alpha = 1)
-  # }
-  # beta <- coef(fit, s = "lambda.min")
-  # selected_vars <- rownames(beta)[which(abs(beta)>1e-6)][-1]
-  # if(length(selected_vars)==0){
-  # rf <- ranger(y ~ ., data = data.frame(X=X, y=y), importance = "impurity", num.trees=50)
-  # importance<-importance(rf)
-  # selected_vars <- names(importance)[importance > mean(importance)- sd(importance)]#
-  # # }
-  # if(length(selected_vars)==0){selected_vars=colnames(X)}
   selected_vars=colnames(X)  
   selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
   selected_vars <- gsub("^M\\.", "", selected_vars)
-  return(list(selected_vars = selected_vars))#, model = fit
+  return(list(selected_vars = selected_vars))
 }
 
 select_different_M_components_ks <- function(
@@ -3143,18 +2859,8 @@ multi_y_var_selection <- function(X, M) {
     rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=100)
     importance<-importance(rf)
     selected_vars <- names(importance)[importance > mean(importance)+sd(importance)]#
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)+1/2*sd(importance)]}
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)]}
-    # if(length(selected_vars)==0){selected_vars=colnames(X)} else{
     selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
     selected_vars <- gsub("^M\\.", "", selected_vars)
-    # }
     
     # 存储结果
     all_selected_vars[[y_names[i]]] <- selected_vars
@@ -3252,9 +2958,7 @@ fit_mv_rf_cf <- function(X_train, M_train, K = 3,
   )
   
   cv_loss <- matrix(NA_real_, nrow = nrow(tune_grid), ncol = K)
-  
-  
-  
+
   for (v in seq_len(K)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -3446,8 +3150,6 @@ make_stratified_fold_id <- function(A, K = 3, seed = 123) {
   
   fold_id
 }     
-
-
 
 el_drm_raw_q <- function(M) {
   M <- as.matrix(M)
@@ -3970,15 +3672,7 @@ el_drm_fit_density_ratio <- function(
     n_fit <- nrow(x_fit)
     x_dim_fit <- ncol(x_fit)
     q_dim_fit <- ncol(q_fit)
-    
-    # # Do not penalize intercept-related coefficients
-    # penalty_mask <- rep(1, 2 * x_dim_fit * q_dim_fit)
-    
-    # intercept_idx0 <- 1 + (0:(q_dim_fit - 1)) * x_dim_fit
-    # intercept_idx1 <- x_dim_fit * q_dim_fit + intercept_idx0
-    
-    # penalty_mask[c(intercept_idx0, intercept_idx1)] <- 0
-    
+
     if (is.null(eta_fit)) {
       eta_fit <- 1 / max(q_dim_fit + ridge_lambda, 1)
     }
@@ -3994,7 +3688,6 @@ el_drm_fit_density_ratio <- function(
       }
       if (is.null(prof) || !is.finite(prof$loss)) return(Inf)
       prof$loss / n_fit + 0.5 * ridge_lambda * sum(theta^2)
-      # prof$loss / n_fit + 0.5 * ridge_lambda * sum((penalty_mask * theta)^2)
     }
     
     prof_cur <- el_drm_approx_loss_grad(theta_cur, x_fit, q_fit, A_fit, p_fit)
@@ -4087,7 +3780,6 @@ el_drm_fit_density_ratio <- function(
       objective = objective(theta_cur, prof_final),
       loss = prof_final$loss / n_fit,
       ridge_lambda = ridge_lambda,
-      # eta = eta_fit
       eta = eta_cur  
     )
   }
@@ -4280,9 +3972,6 @@ cat("\n summary(pi_all)=",paste(capture.output(summary(pi_all)), collapse = "\n"
 cat("\n\n summary(p_all)=",paste(capture.output(summary(p_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
 cat("\n\n summary(1/(1+q_all))=",paste(capture.output(summary(1/(1+q_all))), collapse = "\n"), "\n", file = log_file, append = TRUE)
 
-#num_cores <- detectCores()
-#print(paste("Available cores:", num_cores))
-
 cl <- makeCluster(min(limit,length(rerun_replication_ids)),outfile=archive_log_file)  # 使用核心数减 1，保留一个核心给操作系统
 registerDoParallel(cl)
 invisible(parallel::clusterCall(cl,function() {
@@ -4338,7 +4027,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   pi=pi_all[(t-1)*N+1:N];
   p=p_all[(t-1)*N+1:N];
   q=q_all[(t-1)*N+1:N];
-  f0=f_0_all[(t-1)*N+1:N];#可以删掉
+  f0=f_0_all[(t-1)*N+1:N];
   f1=f_1_all[(t-1)*N+1:N];
   tau=tau_all[(t-1)*N+1:N];
   tau1=tau1_all[(t-1)*N+1:N];
@@ -4346,8 +4035,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   set.seed(seed)  
   
   #polynomial transform
-  #X_poly=poly(X,degree=2);M_poly=poly(M,degree=2);
-  #S_poly=poly(cbind(X,M),degree=2);
   X_poly=X;S_poly=cbind(X,M);M_poly=M;  
   
   #Oracle
@@ -4380,7 +4067,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     rm(index_nk_2345,index_train23, index_train45)
     
     #pi_a
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -4393,10 +4079,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_train1)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[1,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[1,index]-pi[index])/pi[index]))
     
     #pi_b
-    # sel.rho_pi_b=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -4410,20 +4094,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[1,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[1,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train1,])/length(index_train2)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*X[index_train1,])/length(index_train2)
-    # iw=as.numeric(A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))
-    # mean(iw)
-    # mean(colSums(iw*X[index_train2,])/length(index_train2))
-    # iw_oracle=as.numeric(A[index_train2]/pi[index_train2]-(1-A[index_train2])/(1-pi[index_train2]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_train2,])/length(index_train2))
-    
+
     #q
-    # sel.rho_q=c()
     S_index2=S_poly[index_train2,]
     rho.range1=sqrt(log(d1+d2)/length(index_train2))*rho.range1_default
     boolFalse=FALSE #repeat until no errors occur
@@ -4439,58 +4111,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_S_index2=colMeans(-S_index2);sd_S_index2=colSds(-S_index2);beta_q_after=rep(0,length(beta_q));beta_q_after[-1]=beta_q[-1]/sd_S_index2;beta_q_after[1]=beta_q[1]-sum((mean_S_index2/sd_S_index2)%*%beta_q[-1]);beta_q_after[1]=-beta_q_after[1]
     beta_q=beta_q_after
     pred_q[1,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]],pred_q[1,index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # max(abs(beta_q[1]+cbind(X[index,],M[index,])%*%beta_q[-1]-beta_q_i-X[index,]%*%beta_q_X-M[index,]%*%beta_q_M))
-    # grad_q=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_train2,],M[index_train2,])%*%beta_q[-1])-(1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_train2)
-    # grad_q_phi=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train2,]%*%Phi-as.numeric((1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*M[index_train2,])/length(index_train2)
-    
+
     #mu
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_train3,],y=Y[index_train3],weights=A[index_train3]*exp(beta_q[1]+S_poly[index_train3,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_train3,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[1,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_train3)))
-    # beta_mu=as.vector(coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[1,index]-mu[index])
-    
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    
+
     #tau1
     index_train4_A0=index_train4[which(A[index_train4]==0)]
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train4_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_train4,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0 || length(pred_mu_new1)<8
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[1,index]=rep(tau1_training_mean,length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_train4_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_train4_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
         pred_tau1[1,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[1,index]
-    
-    #tau1-gamma
-    # lambda_mu=c()
-    # fit_lasso_tau1=cv.glmnet(x=X[index_train4,],y=M[index_train4,]%*%beta_mu[(1+d1+1):(1+d1+d2)], weights=(1-A[index_train4])*exp(alpha_b[1]+X[index_train4,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-    # pred_tau1[1,index]=beta_mu[1]+X[index,]%*%beta_mu[2:(1+d1)]+predict(fit_lasso_tau1,newx=X[index,],s="lambda.min")
-    # lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))
-    
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[1,index_A0]-pred_tau1[1,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[1,index_A0])*(pred_mu[1,index_A0]-pred_tau1[1,index_A0]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new2=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train5,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new2=predict(fit_lasso_mu,newx=S_poly[index_train5,], s="lambda.min")
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_train5))} else{      pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
       }
     y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2)
@@ -4498,16 +4136,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       fit_lasso_tau=cv.glmnet(x=X_poly[index_train5,],y=y_pseudo, weights=A[index_train5]*exp(-alpha_a[1]-X_poly[index_train5,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[1,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    #test: estimation of tau
-    # summary(abs(pred_tau[1,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A])+A[index_A]/(pred_pi_a[1,index_A])*(pred_tau1[1,index_A]-pred_tau[1,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])==max(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index]))];cbind(pred_pi_a[1,index_max_0],pred_pi_b[1,index_max_0],pred_q[1,index_max_0],pred_mu[1,index_max_0],pred_tau1[1,index_max_0],pred_tau[1,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[1,index]=A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])+pred_tau[1,index];summary(pred_theta[1,index])
-    # pred_theta[7,index]=A[index]*pred_q[6,index]/(pred_pi_a[7,index])*(Y[index]-pred_mu[7,index])+(1-A[index])/(1-pred_pi_a[7,index])*(pred_mu[7,index]-pred_tau[7,index])+pred_tau[7,index];
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -4534,7 +4163,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_nk)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[2,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[2,index]-pi[index])/pi[index]))
     
     #pi_b
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
@@ -4550,18 +4178,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[2,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[2,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,])/length(index_nk)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*X[index_train1,])/length(index_nk)
-    # iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))
-    # mean(iw)
-    # (colSums(iw*X[index_nk,])/length(index_nk))
-    # iw_oracle=as.numeric(A[index_nk]/pi[index_nk]-(1-A[index_nk])/(1-pi[index_nk]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_nk,])/length(index_nk))
-    
+
     #q
     S_index2=S_poly[index_nk,]
     rho.range1=sqrt(log(d1+d2)/length(index_nk))*rho.range1_default
@@ -4569,7 +4186,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     while(boolFalse==FALSE){
       tryCatch({
         fit_Log2_1=glm.regu.cv(x=scale(-S_index2), y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=TRUE,tune.cut=FALSE)
-        # fit_Log2_1=glm.regu.cv(x=-S_poly[index_nk,], y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=FALSE,tune.cut=FALSE)
         boolFalse=TRUE
       },error=function(e){
       },finally={})
@@ -4580,29 +4196,14 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     beta_q[1]=-beta_q[1]
     beta_q=beta_q_after
     pred_q[2,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]],pred_q[2,index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # grad_q=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_nk,],M[index_nk,])%*%beta_q[-1])-(1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_nk)
-    # grad_q_phi=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,]%*%Phi-as.numeric((1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*M[index_nk,])/length(index_nk)
-    
+
     #mu
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk_A,],y=Y[index_nk_A],weights=exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_nk_A,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[2,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[2,index]-mu[index])
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
     
     #tau1
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
@@ -4610,17 +4211,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
         pred_tau1[2,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
       }
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[2,index]
-    
-    # summary(1-A[index])/(1-pi[index])*(mu[index]-tau1[index])
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[2,index_A0]-pred_tau1[2,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[2,index_A0])*(pred_mu[2,index_A0]-pred_tau1[2,index_A0]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A,,drop=FALSE],s="lambda.min"))
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_nk_A))} else{
@@ -4632,15 +4223,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau[2,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_nk)))
     }
-    #test: estimation of tau
-    # summary(abs(pred_tau[2,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A])+A[index_A]/(pred_pi_a[2,index_A])*(pred_tau1[2,index_A]-pred_tau[2,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])==max(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index]))];cbind(pred_pi_a[2,index_max_0],pred_pi_b[2,index_max_0],pred_q[2,index_max_0],pred_mu[2,index_max_0],pred_tau1[2,index_max_0],pred_tau[2,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[2,index]=A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])+pred_tau[2,index];summary(pred_theta[2,index])
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -4667,7 +4250,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     #pi using Random forest
     lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -4738,8 +4321,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr1
     )
-    # pred_q[3,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[3,index]=exp(log_ratio_index)
 
     log_info(paste(
       "QR1 fold", k,
@@ -4756,7 +4337,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[3,index]=predict(mu_rf$finalModel, data=cbind(X[index, ],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
 
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk2_A0,],M[index_nk2_A0,])[,selected_vars_mu,drop=FALSE])
@@ -4766,12 +4346,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
     pred_tau1[3,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-    # summary(pred_tau1[3,index])
 
     #tau
-    # prediction_pi_1=pmax(pmin(predict(pi_rf$finalModel, data=X[index_nk3_A,selected_vars_pi,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_p_1=pmax(pmin(predict(p_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A, ])[,selected_vars_p,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_q_1=(1-prediction_p_1)/prediction_p_1*prediction_pi_1/(1-prediction_pi_1)
 
     log_ratio_index_nk3_A <- el_drm_predict_log_ratio(f_el_drm_sdr1,
                                                       X[index_nk3_A, x_vars, drop = FALSE],
@@ -4780,8 +4356,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index_nk3_A,
       ref_log_q = ref_log_q_sdr1
     )
-    # prediction_q_1=exp(pmax(pmin(log_ratio_index_nk3_A, log(100)), log(0.01)))
-    # prediction_q_1=exp(log_ratio_index_nk3_A)
 
     prediction_mu_2=predict(mu_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A,])[,selected_vars_mu,drop=FALSE])
     prediction_tau1_1=predict(tau1_rf$finalModel, data=X[index_nk3_A,selected_vars_tau1,drop=FALSE])
@@ -4793,13 +4367,10 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
 
     pred_tau[3,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
-    # p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif)
     pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2,prediction_tau1_1)
     rm(prediction_q_1)
     gc()
-    # pred_theta[3,index]=A[index]*pred_q[3,index]/(pred_pi_a[3,index])*(Y[index]-pred_mu[3,index])+(1-A[index])/(1-pred_pi_b[3,index])*(pred_mu[3,index]-pred_tau1[3,index])+A[index]/(pred_pi_a[3,index])*(pred_tau1[3,index]-pred_tau[3,index])+pred_tau[3,index];summary(pred_theta[3,index]);
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -4880,8 +4451,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr2_full
     )
-    # pred_q[4,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[4,index]=exp(log_ratio_index)
     log_info(paste(
       "QR2 fold", k,
       "ridge_lambda =", f_el_drm$ridge_lambda,
@@ -4897,7 +4466,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[4,index]=predict(mu_rf$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
   
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk_A0,],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -4907,7 +4475,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau1[4,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
-    # summary(pred_tau1[3,index])
   
     #tau: use full outer-training-fold predictions for the QR2 pseudo-outcome.
     prediction_q_1 <- normalized_truncate_q(
@@ -4927,8 +4494,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau[4,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
     mtry_tau=c(mtry_tau,tau_rf$bestTune$mtry)
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
-    # pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi);p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif);rm(prediction_q_1)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2_preds,prediction_tau1_1)
     gc()
   }
@@ -4945,7 +4510,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     index_nk2=index_nk[-(1:floor(length(index_nk)/2))]
     
     #pi
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -4964,7 +4528,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_pi_b[8,index]=pred_pi_a[5,index]
     
     #p
-    # sel.rho_p=c()
     rho.range0=sqrt(log(d1+d2)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -4982,12 +4545,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_q[8,index]=pred_q[5,index]
     
     #mu-1
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk1[A[index_nk1]==1],],y=Y[index_nk1[A[index_nk1]==1]],family="gaussian",alpha=1)
     pred_mu[5,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk1)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[4,index]-mu[index])
     
     #tau1-1
     pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk2[A[index_nk2]==0],],s="lambda.min")
@@ -4996,30 +4556,13 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau1[5,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
       lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk2)))
     }
-    
-    # #mu-2
-    # # lambda_mu=c()
-    # fit_lasso_mu=cv.glmnet(x=S_poly[index_nk[A[index_nk]==1],],y=Y[index_nk[A[index_nk]==1]],family="gaussian",alpha=1)
-    # pred_mu[8,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
-    # lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # # summary(pred_mu[4,index]-mu[index])
-    
-    # #tau1-2
-    # pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk[A[index_nk]==0],],s="lambda.min")
-    # if (sd(pred_mu_new1_miles)==0){pred_tau1[8,index]=rep(mean(pred_mu_new1_miles),length(index));lambda_tau1=c(lambda_tau1,0)} else{
-    #   fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk[A[index_nk]==0],],y=pred_mu_new1_miles,family="gaussian",alpha=1)
-    #   pred_tau1[8,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
-    #   lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
-    # }
-    
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | O-TR' | complete",t,tmax))
   set.seed(seed)
-  
-  
+
   #-------------TR & O-TR------------------
   for (k in 1:Kmb){
     index=(1:n)+(k-1)*n
@@ -5048,14 +4591,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_pi=c(minsize_pi,pi_rf_TR$bestTune$min.node.size)
     pi_rf_TR=butcher(pi_rf_TR);rm(pi_rf_TR,prediction_pi_TR);gc()
 
-    #p using Random forest-O-TR
     lasso_p <- lasso_var_selection(cbind(X[index_nk,],M[index_nk,]),A[index_nk],task=1)
     selected_vars_p <- lasso_p$selected_vars
-    # selected_M=colnames(M)[select_different_M_components_ks(M[index_nk, ], A[index_nk])]
-    # selected_vars_p <- c(colnames(X[index_nk,]),selected_M)
-    # selected_A1=multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    # selected_A0=multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
-    # selected_vars_p <- unique(c(selected_A1,selected_A0,selected_M))
     p_rf_TR=caret::train(x=cbind(X[index_nk,],M[index_nk,])[,selected_vars_p,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_p),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)) )
     pred_p[4,index]=pmax(pmin(predict(p_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_p,drop=FALSE])$predictions[, 2],0.99), 0.01)
     pred_q[7,index]=(1-pred_p[4,index])/pred_p[4,index]*pred_pi_a[7,index]/(1- pred_pi_a[7,index])
@@ -5090,7 +4627,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[9,index]=pred_mu[6,index]
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
-    # summary(pred_mu[5,index]-mu[index])
 
     #tau1 for O-TR2
     prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=cbind(X[index_nk_A0, ],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -5105,8 +4641,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     selected_M <- 1:ncol(M)
     ds=length(selected_M)
     x_vars <- multi_y_var_selection(X[index_nk, ], M[index_nk, selected_M, drop = FALSE])$union_vars
-    selected_A1=x_vars#multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    selected_A0=x_vars#multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
+    selected_A1=x_vars
+    selected_A0=x_vars
 
     # A=1: inner-CV tuning of mtry and nodesize
     rf_mean_A1 <- fit_mv_rf_cf(
@@ -5121,7 +4657,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_rf_A <- rf_mean_A1$fit
     mean_train_A1 <- rf_mean_A1$oob_pred
     residuals_A1 <- M[index_nk_A, selected_M, drop = FALSE] - mean_train_A1
-
 
     # A=0: independently tune mtry and nodesize
     rf_mean_A0 <- fit_mv_rf_cf(
@@ -5148,13 +4683,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     residuals_A1 <- sweep(residuals_A1, 2, colMeans(residuals_A1), "-")
     residuals_A0 <- sweep(residuals_A0, 2, colMeans(residuals_A0), "-")
     residuals_pool <- rbind(residuals_A1, residuals_A0)
-
-    # cov_result <- compute_shrinkage_cov(residuals_pool, lambda = "auto")
-    # sig_M_pool <- cov_result$matrix
-    # colnames(sig_M_pool) <- colnames(M)[selected_M]
-    # rownames(sig_M_pool) <- colnames(M)[selected_M]
-    # sig_M_A1 <- sig_M_pool
-    # sig_M_A0 <- sig_M_pool
 
     cov_A1 <- compute_shrinkage_cov(residuals_A1, lambda = "auto")
     cov_A0 <- compute_shrinkage_cov(residuals_A0, lambda = "auto")
@@ -5187,10 +4715,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     colnames(mean_pred_A) <- colnames(M)[selected_M]
 
     log_dens_A1<-dmvnorm(M[index, selected_M]-mean_pred_A, sigma=sig_M_A1, log= TRUE)
-    # log_dens_A1<-log(pmax(pmin(exp(log_dens_A1), 0.999), 0.001))
     log_dens_A0<-dmvnorm(M[index, selected_M]-mean_pred_A0, sigma=sig_M_A0, log= TRUE)
-    # log_dens_A0<-log(pmax(pmin(exp(log_dens_A0), 0.999), 0.001))
-    # pred_q[6,index]=pmax(pmin(exp(log_dens_A0 - log_dens_A1),100),0.01)
 
     log_q_test_raw <- log_dens_A0 - log_dens_A1
 
@@ -5199,13 +4724,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       ref_log_q = log_q_train
     )
 
-
     if (!all(is.finite(pred_q[6,index]))) {
       stop("Non-finite density ratio after exponentiation.")
     }
-    # pred_q[6,index]=normalized_truncate_q(log_dens_A0, log_dens_A1,
-    #                                       treated = A[index_nk] == 1)
-    # pred_q[6,index]=exp(log_dens_A0 - log_dens_A1)
 
     # tau_1: reuse the same estimated F0(M|X)
     m_vars <- as.numeric(sub("^M", "", grep("^M", selected_vars_mu, value = TRUE)))
@@ -5279,7 +4800,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   theta_hat-theta;sigma_hat
   
   result=c(pred_theta=theta_hat,pred_sig2=sigma_hat,mse_tau,mse_mu,mse_q,mse_pi,mse_tau1,res_mu_tau,sel.rho_pi_a,sel.rho_pi_b,sel.rho_q,sel.rho_p,lambda_mu,lambda_tau1,lambda_tau,mtry_pi,mtry_p,mtry_mu,mtry_tau1,mtry_tau,minsize_pi,minsize_p,minsize_mu,minsize_tau1,minsize_tau)
-  # result_list=list(result=result)                               
   replication_file <- file.path(archive_replication_directory, sprintf("rep_%03d.rds", t))
   temp_file <- paste0(replication_file, ".tmp")
   saveRDS(result, file = temp_file)
@@ -5307,20 +4827,10 @@ tmax=100;Kmb=5;value_trunc=5;n=floor(N/Kmb)
 seed=2026;limit=rerun_workers
 set.seed(seed)
 #--------data generating--------------
-# if (Setting=="a")
 # Setting a: non-logistic pi, nonlinear mu
-# func_link=function(x){(abs(x)+sin(x)+0.1)/(abs(x)+sin(x)+0.7)}
 func_link=function(x){plogis(x)}
-# func_link=function(x){0.2+0.6/(1+abs(x)^3)} #non-logistic function
-#func_link=function(x){pnorm(x)-1/2}
 beta_pi_i=0.5
-# raw = 1 / sqrt(1:20)
-# beta_pi_X = raw / sqrt(sum(raw^2)) * sqrt(3)
-# beta_pi_X = c(beta_pi_X, rep(0, d1 - 20))
-# beta_pi_X=c(1, rep(sqrt(0.2),19),rep(0,d1-20))
-# beta_pi_X = c(rep(1, 3), rep(0.35, 17), rep(0, d1 - 20))
 beta_pi_X = c(0.6, rep(0.2,4), rep(0,d1-5))
-# beta_pi_X = c(rep(1,3), rep(0,d1-3))
 
 beta_mu_i=1
 beta_mu_X=c(rep(0.5,5),rep(0,d1-5))
@@ -5331,14 +4841,11 @@ beta_mu_nl=c(rep(0,3),rep(0,7),rep(0,d1-s_nl))
 
 #X_all follows the normal distribution. 
 X_all=matrix(rtruncnorm(N*d1*tmax,-value_trunc,value_trunc,mean=0),nrow=N*tmax)
-#X_all=matrix(rbeta(N*d1*tmax,1,2),nrow=N*tmax)-1/3
-#X_all <- matrix(rsn(N*d1*tmax, xi = 0, omega = 1.3, alpha = 5),nrow=N*tmax)-0-1.3*5/sqrt(1 + 5^2)*sqrt(2 / pi)
 
 #pi and A
 pi_all=func_link(beta_pi_i+X_all%*%beta_pi_X)
 A_all=rbinom(N*tmax,1,pi_all)
 
-# delta1_all=c(0.8,0.2,0.2,rep(0,d2-3))
 delta1_all = c(1.10,0.55,rep(0,d2-2))
 delta2_all = c(rep(0.45,3),rep(0,d2-3))
 delta2=delta2_all[1]
@@ -5359,7 +4866,6 @@ for (i in 1:d1){
     } else if (abs(i-j)==2){
       Phi[i,j]=0
     }
-    #  Phi[i,j]=0.3^(abs(i-j))
   }
 }
 
@@ -5421,8 +4927,6 @@ rm(phi_dense_codes,phi_dense_units)
 
 #Sigma & U
 Sigma=diag(d2)
-# Sigma[1,2]=0.3; Sigma[2,1]=0.3
-# Sigma[1,3]=0.5; Sigma[3,1]=0.5
 for (i in 1:d2){
   for (j in 1:d2){
     if (abs(i-j)==1){
@@ -5454,7 +4958,6 @@ U_tot_all=scale_Me*U_all+delta2_all_matrix+A_all*delta1_all_matrix
 
 #q
 Inverse=diag(d2)/(scale_Me)^2
-# Inverse[1:3,1:3]=solve(scale_Me^2*Sigma[1:3,1:3])
 Inverse=solve(scale_Me^2*Sigma)
 beta_q_i=as.numeric((delta2_all+1/2*delta1_all)%*%(Inverse%*%delta1_all))
 beta_q_X=scale_XM*Phi%*%(Inverse%*%delta1_all)
@@ -5478,20 +4981,8 @@ scale_xsq=0
 #mu_all
 bsm_all=scale_XM*(X_all)%*%Phi+common_nonlinear_all+delta2_all_matrix
 mu_all=beta_mu_i+(M_all-bsm_all)%*%beta_mu_M+X_all%*%beta_mu_X
-# scale_mix* (U_tot_all[,s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*((U_tot_all[,1]>=delta2_all[1]))*(X_all%*%beta_mu_X)+scale_xsq*rowSums((X_all[,1:3])^2*(U_tot_all[,1:3]-delta2_all_matrix[,1:3]))
-#+exp(scale_exp*(U_tot_all)%*%delta4_all)+scale_mue*(U_tot_all)^2%*%delta3_all
-#+scale_mix*((U_all[,d2]>0)*M_all[,d2-1]*X_all[,1]+(U_all[,d2-1]>0)*M_all[,d2-2]*X_all[,2]+(U_all[,d2-2]>0)*M_all[,d2]*X_all[,3])
-#+(X_all%*%Phi*U_all)%*%beta_mu_mix+scale_abs*abs(U_all)%*%delta4_all
 
-#tau_all
-# bsm_all=scale_XM*(X_all)%*%Phi+delta2_all_matrix
-#tau1_all & tau_all
-tau_all=beta_mu_i+X_all%*%beta_mu_X#+bsm_all%*%beta_mu_M
-# +scale_mue*as.vector((diag(Sigma)+delta2_all^2)%*%delta3_all)+scale_mix*(delta2_all[s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*(1-pnorm(0))*(X_all%*%beta_mu_X)
-#+as.vector(exp(scale_exp*delta4_all%*%delta2_all+0.5*scale_exp^2*scale_Me^2*delta4_all%*%(Sigma%*%delta4_all)))
-#+scale_mix/2*(delta2)*(X_all[,1]+X_all[,2]+X_all[,3])
-#+scale_abs*sum(sqrt(2/base::pi)*delta4_all)
-#+scale_sub*0*(3-pnorm(delta1_all[1])-pnorm(delta1_all[2])-pnorm(delta1_all[3]))*X_all%*%beta_mu_X
+tau_all=beta_mu_i+X_all%*%beta_mu_X
 tau1_all=tau_all
 
 #theta
@@ -5538,25 +5029,10 @@ standardize_data <- function(X_train, X_test = NULL) {
 }
 # Lasso 变量筛选函数（自动标准化）
 lasso_var_selection <- function(X, y, task = 0) {
-  # std_result <- standardize_data(X)
-  # X_scaled <- std_result$train
-  # if (task == 1) {  # 分类任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "binomial", alpha = 1)
-  # } else {          # 回归任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "gaussian", alpha = 1)
-  # }
-  # beta <- coef(fit, s = "lambda.min")
-  # selected_vars <- rownames(beta)[which(abs(beta)>1e-6)][-1]
-  # if(length(selected_vars)==0){
-  # rf <- ranger(y ~ ., data = data.frame(X=X, y=y), importance = "impurity", num.trees=50)
-  # importance<-importance(rf)
-  # selected_vars <- names(importance)[importance > mean(importance)- sd(importance)]#
-  # # }
-  # if(length(selected_vars)==0){selected_vars=colnames(X)}
   selected_vars=colnames(X)  
   selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
   selected_vars <- gsub("^M\\.", "", selected_vars)
-  return(list(selected_vars = selected_vars))#, model = fit
+  return(list(selected_vars = selected_vars))
 }
 
 select_different_M_components_ks <- function(
@@ -5749,18 +5225,8 @@ multi_y_var_selection <- function(X, M) {
     rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=100)
     importance<-importance(rf)
     selected_vars <- names(importance)[importance > mean(importance)+sd(importance)]#
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)+1/2*sd(importance)]}
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)]}
-    # if(length(selected_vars)==0){selected_vars=colnames(X)} else{
     selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
     selected_vars <- gsub("^M\\.", "", selected_vars)
-    # }
     
     # 存储结果
     all_selected_vars[[y_names[i]]] <- selected_vars
@@ -5858,9 +5324,7 @@ fit_mv_rf_cf <- function(X_train, M_train, K = 3,
   )
   
   cv_loss <- matrix(NA_real_, nrow = nrow(tune_grid), ncol = K)
-  
-  
-  
+
   for (v in seq_len(K)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -6052,8 +5516,6 @@ make_stratified_fold_id <- function(A, K = 3, seed = 123) {
   
   fold_id
 }     
-
-
 
 el_drm_raw_q <- function(M) {
   M <- as.matrix(M)
@@ -6576,15 +6038,7 @@ el_drm_fit_density_ratio <- function(
     n_fit <- nrow(x_fit)
     x_dim_fit <- ncol(x_fit)
     q_dim_fit <- ncol(q_fit)
-    
-    # # Do not penalize intercept-related coefficients
-    # penalty_mask <- rep(1, 2 * x_dim_fit * q_dim_fit)
-    
-    # intercept_idx0 <- 1 + (0:(q_dim_fit - 1)) * x_dim_fit
-    # intercept_idx1 <- x_dim_fit * q_dim_fit + intercept_idx0
-    
-    # penalty_mask[c(intercept_idx0, intercept_idx1)] <- 0
-    
+
     if (is.null(eta_fit)) {
       eta_fit <- 1 / max(q_dim_fit + ridge_lambda, 1)
     }
@@ -6600,7 +6054,6 @@ el_drm_fit_density_ratio <- function(
       }
       if (is.null(prof) || !is.finite(prof$loss)) return(Inf)
       prof$loss / n_fit + 0.5 * ridge_lambda * sum(theta^2)
-      # prof$loss / n_fit + 0.5 * ridge_lambda * sum((penalty_mask * theta)^2)
     }
     
     prof_cur <- el_drm_approx_loss_grad(theta_cur, x_fit, q_fit, A_fit, p_fit)
@@ -6693,7 +6146,6 @@ el_drm_fit_density_ratio <- function(
       objective = objective(theta_cur, prof_final),
       loss = prof_final$loss / n_fit,
       ridge_lambda = ridge_lambda,
-      # eta = eta_fit
       eta = eta_cur  
     )
   }
@@ -6886,9 +6338,6 @@ cat("\n summary(pi_all)=",paste(capture.output(summary(pi_all)), collapse = "\n"
 cat("\n\n summary(p_all)=",paste(capture.output(summary(p_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
 cat("\n\n summary(1/(1+q_all))=",paste(capture.output(summary(1/(1+q_all))), collapse = "\n"), "\n", file = log_file, append = TRUE)
 
-#num_cores <- detectCores()
-#print(paste("Available cores:", num_cores))
-
 cl <- makeCluster(min(limit,length(rerun_replication_ids)),outfile=archive_log_file)  # 使用核心数减 1，保留一个核心给操作系统
 registerDoParallel(cl)
 invisible(parallel::clusterCall(cl,function() {
@@ -6944,7 +6393,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   pi=pi_all[(t-1)*N+1:N];
   p=p_all[(t-1)*N+1:N];
   q=q_all[(t-1)*N+1:N];
-  f0=f_0_all[(t-1)*N+1:N];#可以删掉
+  f0=f_0_all[(t-1)*N+1:N];
   f1=f_1_all[(t-1)*N+1:N];
   tau=tau_all[(t-1)*N+1:N];
   tau1=tau1_all[(t-1)*N+1:N];
@@ -6952,8 +6401,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   set.seed(seed)  
   
   #polynomial transform
-  #X_poly=poly(X,degree=2);M_poly=poly(M,degree=2);
-  #S_poly=poly(cbind(X,M),degree=2);
   X_poly=X;S_poly=cbind(X,M);M_poly=M;  
   
   #Oracle
@@ -6986,7 +6433,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     rm(index_nk_2345,index_train23, index_train45)
     
     #pi_a
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -6999,10 +6445,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_train1)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[1,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[1,index]-pi[index])/pi[index]))
     
     #pi_b
-    # sel.rho_pi_b=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -7016,20 +6460,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[1,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[1,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train1,])/length(index_train2)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*X[index_train1,])/length(index_train2)
-    # iw=as.numeric(A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))
-    # mean(iw)
-    # mean(colSums(iw*X[index_train2,])/length(index_train2))
-    # iw_oracle=as.numeric(A[index_train2]/pi[index_train2]-(1-A[index_train2])/(1-pi[index_train2]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_train2,])/length(index_train2))
-    
+
     #q
-    # sel.rho_q=c()
     S_index2=S_poly[index_train2,]
     rho.range1=sqrt(log(d1+d2)/length(index_train2))*rho.range1_default
     boolFalse=FALSE #repeat until no errors occur
@@ -7045,58 +6477,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_S_index2=colMeans(-S_index2);sd_S_index2=colSds(-S_index2);beta_q_after=rep(0,length(beta_q));beta_q_after[-1]=beta_q[-1]/sd_S_index2;beta_q_after[1]=beta_q[1]-sum((mean_S_index2/sd_S_index2)%*%beta_q[-1]);beta_q_after[1]=-beta_q_after[1]
     beta_q=beta_q_after
     pred_q[1,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]],pred_q[1,index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # max(abs(beta_q[1]+cbind(X[index,],M[index,])%*%beta_q[-1]-beta_q_i-X[index,]%*%beta_q_X-M[index,]%*%beta_q_M))
-    # grad_q=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_train2,],M[index_train2,])%*%beta_q[-1])-(1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_train2)
-    # grad_q_phi=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train2,]%*%Phi-as.numeric((1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*M[index_train2,])/length(index_train2)
-    
+
     #mu
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_train3,],y=Y[index_train3],weights=A[index_train3]*exp(beta_q[1]+S_poly[index_train3,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_train3,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[1,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_train3)))
-    # beta_mu=as.vector(coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[1,index]-mu[index])
-    
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    
+
     #tau1
     index_train4_A0=index_train4[which(A[index_train4]==0)]
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train4_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_train4,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0 || length(pred_mu_new1)<8
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[1,index]=rep(tau1_training_mean,length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_train4_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_train4_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
         pred_tau1[1,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[1,index]
-    
-    #tau1-gamma
-    # lambda_mu=c()
-    # fit_lasso_tau1=cv.glmnet(x=X[index_train4,],y=M[index_train4,]%*%beta_mu[(1+d1+1):(1+d1+d2)], weights=(1-A[index_train4])*exp(alpha_b[1]+X[index_train4,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-    # pred_tau1[1,index]=beta_mu[1]+X[index,]%*%beta_mu[2:(1+d1)]+predict(fit_lasso_tau1,newx=X[index,],s="lambda.min")
-    # lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))
-    
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[1,index_A0]-pred_tau1[1,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[1,index_A0])*(pred_mu[1,index_A0]-pred_tau1[1,index_A0]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new2=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train5,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new2=predict(fit_lasso_mu,newx=S_poly[index_train5,], s="lambda.min")
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_train5))} else{      pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
       }
     y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2)
@@ -7104,16 +6502,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       fit_lasso_tau=cv.glmnet(x=X_poly[index_train5,],y=y_pseudo, weights=A[index_train5]*exp(-alpha_a[1]-X_poly[index_train5,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[1,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    #test: estimation of tau
-    # summary(abs(pred_tau[1,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A])+A[index_A]/(pred_pi_a[1,index_A])*(pred_tau1[1,index_A]-pred_tau[1,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])==max(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index]))];cbind(pred_pi_a[1,index_max_0],pred_pi_b[1,index_max_0],pred_q[1,index_max_0],pred_mu[1,index_max_0],pred_tau1[1,index_max_0],pred_tau[1,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[1,index]=A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])+pred_tau[1,index];summary(pred_theta[1,index])
-    # pred_theta[7,index]=A[index]*pred_q[6,index]/(pred_pi_a[7,index])*(Y[index]-pred_mu[7,index])+(1-A[index])/(1-pred_pi_a[7,index])*(pred_mu[7,index]-pred_tau[7,index])+pred_tau[7,index];
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -7140,7 +6529,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_nk)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[2,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[2,index]-pi[index])/pi[index]))
     
     #pi_b
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
@@ -7156,18 +6544,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[2,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[2,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,])/length(index_nk)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*X[index_train1,])/length(index_nk)
-    # iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))
-    # mean(iw)
-    # (colSums(iw*X[index_nk,])/length(index_nk))
-    # iw_oracle=as.numeric(A[index_nk]/pi[index_nk]-(1-A[index_nk])/(1-pi[index_nk]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_nk,])/length(index_nk))
-    
+
     #q
     S_index2=S_poly[index_nk,]
     rho.range1=sqrt(log(d1+d2)/length(index_nk))*rho.range1_default
@@ -7175,7 +6552,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     while(boolFalse==FALSE){
       tryCatch({
         fit_Log2_1=glm.regu.cv(x=scale(-S_index2), y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=TRUE,tune.cut=FALSE)
-        # fit_Log2_1=glm.regu.cv(x=-S_poly[index_nk,], y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=FALSE,tune.cut=FALSE)
         boolFalse=TRUE
       },error=function(e){
       },finally={})
@@ -7186,29 +6562,14 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     beta_q[1]=-beta_q[1]
     beta_q=beta_q_after
     pred_q[2,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]],pred_q[2,index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # grad_q=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_nk,],M[index_nk,])%*%beta_q[-1])-(1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_nk)
-    # grad_q_phi=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,]%*%Phi-as.numeric((1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*M[index_nk,])/length(index_nk)
-    
+
     #mu
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk_A,],y=Y[index_nk_A],weights=exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_nk_A,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[2,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[2,index]-mu[index])
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
     
     #tau1
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
@@ -7216,17 +6577,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
         pred_tau1[2,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
       }
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[2,index]
-    
-    # summary(1-A[index])/(1-pi[index])*(mu[index]-tau1[index])
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[2,index_A0]-pred_tau1[2,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[2,index_A0])*(pred_mu[2,index_A0]-pred_tau1[2,index_A0]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A,,drop=FALSE],s="lambda.min"))
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_nk_A))} else{
@@ -7238,15 +6589,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau[2,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_nk)))
     }
-    #test: estimation of tau
-    # summary(abs(pred_tau[2,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A])+A[index_A]/(pred_pi_a[2,index_A])*(pred_tau1[2,index_A]-pred_tau[2,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])==max(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index]))];cbind(pred_pi_a[2,index_max_0],pred_pi_b[2,index_max_0],pred_q[2,index_max_0],pred_mu[2,index_max_0],pred_tau1[2,index_max_0],pred_tau[2,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[2,index]=A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])+pred_tau[2,index];summary(pred_theta[2,index])
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -7273,7 +6616,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     #pi using Random forest
     lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -7344,8 +6687,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr1
     )
-    # pred_q[3,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[3,index]=exp(log_ratio_index)
 
     log_info(paste(
       "QR1 fold", k,
@@ -7362,7 +6703,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[3,index]=predict(mu_rf$finalModel, data=cbind(X[index, ],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
 
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk2_A0,],M[index_nk2_A0,])[,selected_vars_mu,drop=FALSE])
@@ -7372,12 +6712,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
     pred_tau1[3,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-    # summary(pred_tau1[3,index])
 
     #tau
-    # prediction_pi_1=pmax(pmin(predict(pi_rf$finalModel, data=X[index_nk3_A,selected_vars_pi,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_p_1=pmax(pmin(predict(p_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A, ])[,selected_vars_p,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_q_1=(1-prediction_p_1)/prediction_p_1*prediction_pi_1/(1-prediction_pi_1)
 
     log_ratio_index_nk3_A <- el_drm_predict_log_ratio(f_el_drm_sdr1,
                                                       X[index_nk3_A, x_vars, drop = FALSE],
@@ -7386,8 +6722,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index_nk3_A,
       ref_log_q = ref_log_q_sdr1
     )
-    # prediction_q_1=exp(pmax(pmin(log_ratio_index_nk3_A, log(100)), log(0.01)))
-    # prediction_q_1=exp(log_ratio_index_nk3_A)
 
     prediction_mu_2=predict(mu_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A,])[,selected_vars_mu,drop=FALSE])
     prediction_tau1_1=predict(tau1_rf$finalModel, data=X[index_nk3_A,selected_vars_tau1,drop=FALSE])
@@ -7399,13 +6733,10 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
 
     pred_tau[3,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
-    # p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif)
     pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2,prediction_tau1_1)
     rm(prediction_q_1)
     gc()
-    # pred_theta[3,index]=A[index]*pred_q[3,index]/(pred_pi_a[3,index])*(Y[index]-pred_mu[3,index])+(1-A[index])/(1-pred_pi_b[3,index])*(pred_mu[3,index]-pred_tau1[3,index])+A[index]/(pred_pi_a[3,index])*(pred_tau1[3,index]-pred_tau[3,index])+pred_tau[3,index];summary(pred_theta[3,index]);
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -7486,8 +6817,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr2_full
     )
-    # pred_q[4,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[4,index]=exp(log_ratio_index)
     log_info(paste(
       "QR2 fold", k,
       "ridge_lambda =", f_el_drm$ridge_lambda,
@@ -7503,7 +6832,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[4,index]=predict(mu_rf$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
   
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk_A0,],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -7513,7 +6841,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau1[4,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
-    # summary(pred_tau1[3,index])
   
     #tau: use full outer-training-fold predictions for the QR2 pseudo-outcome.
     prediction_q_1 <- normalized_truncate_q(
@@ -7533,8 +6860,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau[4,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
     mtry_tau=c(mtry_tau,tau_rf$bestTune$mtry)
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
-    # pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi);p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif);rm(prediction_q_1)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2_preds,prediction_tau1_1)
     gc()
   }
@@ -7551,7 +6876,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     index_nk2=index_nk[-(1:floor(length(index_nk)/2))]
     
     #pi
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -7570,7 +6894,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_pi_b[8,index]=pred_pi_a[5,index]
     
     #p
-    # sel.rho_p=c()
     rho.range0=sqrt(log(d1+d2)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -7588,12 +6911,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_q[8,index]=pred_q[5,index]
     
     #mu-1
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk1[A[index_nk1]==1],],y=Y[index_nk1[A[index_nk1]==1]],family="gaussian",alpha=1)
     pred_mu[5,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk1)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[4,index]-mu[index])
     
     #tau1-1
     pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk2[A[index_nk2]==0],],s="lambda.min")
@@ -7602,30 +6922,13 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau1[5,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
       lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk2)))
     }
-    
-    # #mu-2
-    # # lambda_mu=c()
-    # fit_lasso_mu=cv.glmnet(x=S_poly[index_nk[A[index_nk]==1],],y=Y[index_nk[A[index_nk]==1]],family="gaussian",alpha=1)
-    # pred_mu[8,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
-    # lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # # summary(pred_mu[4,index]-mu[index])
-    
-    # #tau1-2
-    # pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk[A[index_nk]==0],],s="lambda.min")
-    # if (sd(pred_mu_new1_miles)==0){pred_tau1[8,index]=rep(mean(pred_mu_new1_miles),length(index));lambda_tau1=c(lambda_tau1,0)} else{
-    #   fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk[A[index_nk]==0],],y=pred_mu_new1_miles,family="gaussian",alpha=1)
-    #   pred_tau1[8,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
-    #   lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
-    # }
-    
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | O-TR' | complete",t,tmax))
   set.seed(seed)
-  
-  
+
   #-------------TR & O-TR------------------
   for (k in 1:Kmb){
     index=(1:n)+(k-1)*n
@@ -7654,14 +6957,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_pi=c(minsize_pi,pi_rf_TR$bestTune$min.node.size)
     pi_rf_TR=butcher(pi_rf_TR);rm(pi_rf_TR,prediction_pi_TR);gc()
 
-    #p using Random forest-O-TR
     lasso_p <- lasso_var_selection(cbind(X[index_nk,],M[index_nk,]),A[index_nk],task=1)
     selected_vars_p <- lasso_p$selected_vars
-    # selected_M=colnames(M)[select_different_M_components_ks(M[index_nk, ], A[index_nk])]
-    # selected_vars_p <- c(colnames(X[index_nk,]),selected_M)
-    # selected_A1=multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    # selected_A0=multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
-    # selected_vars_p <- unique(c(selected_A1,selected_A0,selected_M))
     p_rf_TR=caret::train(x=cbind(X[index_nk,],M[index_nk,])[,selected_vars_p,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_p),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)) )
     pred_p[4,index]=pmax(pmin(predict(p_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_p,drop=FALSE])$predictions[, 2],0.99), 0.01)
     pred_q[7,index]=(1-pred_p[4,index])/pred_p[4,index]*pred_pi_a[7,index]/(1- pred_pi_a[7,index])
@@ -7696,7 +6993,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[9,index]=pred_mu[6,index]
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
-    # summary(pred_mu[5,index]-mu[index])
 
     #tau1 for O-TR2
     prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=cbind(X[index_nk_A0, ],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -7711,8 +7007,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     selected_M <- 1:ncol(M)
     ds=length(selected_M)
     x_vars <- multi_y_var_selection(X[index_nk, ], M[index_nk, selected_M, drop = FALSE])$union_vars
-    selected_A1=x_vars#multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    selected_A0=x_vars#multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
+    selected_A1=x_vars
+    selected_A0=x_vars
 
     # A=1: inner-CV tuning of mtry and nodesize
     rf_mean_A1 <- fit_mv_rf_cf(
@@ -7727,7 +7023,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_rf_A <- rf_mean_A1$fit
     mean_train_A1 <- rf_mean_A1$oob_pred
     residuals_A1 <- M[index_nk_A, selected_M, drop = FALSE] - mean_train_A1
-
 
     # A=0: independently tune mtry and nodesize
     rf_mean_A0 <- fit_mv_rf_cf(
@@ -7754,13 +7049,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     residuals_A1 <- sweep(residuals_A1, 2, colMeans(residuals_A1), "-")
     residuals_A0 <- sweep(residuals_A0, 2, colMeans(residuals_A0), "-")
     residuals_pool <- rbind(residuals_A1, residuals_A0)
-
-    # cov_result <- compute_shrinkage_cov(residuals_pool, lambda = "auto")
-    # sig_M_pool <- cov_result$matrix
-    # colnames(sig_M_pool) <- colnames(M)[selected_M]
-    # rownames(sig_M_pool) <- colnames(M)[selected_M]
-    # sig_M_A1 <- sig_M_pool
-    # sig_M_A0 <- sig_M_pool
 
     cov_A1 <- compute_shrinkage_cov(residuals_A1, lambda = "auto")
     cov_A0 <- compute_shrinkage_cov(residuals_A0, lambda = "auto")
@@ -7793,10 +7081,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     colnames(mean_pred_A) <- colnames(M)[selected_M]
 
     log_dens_A1<-dmvnorm(M[index, selected_M]-mean_pred_A, sigma=sig_M_A1, log= TRUE)
-    # log_dens_A1<-log(pmax(pmin(exp(log_dens_A1), 0.999), 0.001))
     log_dens_A0<-dmvnorm(M[index, selected_M]-mean_pred_A0, sigma=sig_M_A0, log= TRUE)
-    # log_dens_A0<-log(pmax(pmin(exp(log_dens_A0), 0.999), 0.001))
-    # pred_q[6,index]=pmax(pmin(exp(log_dens_A0 - log_dens_A1),100),0.01)
 
     log_q_test_raw <- log_dens_A0 - log_dens_A1
 
@@ -7805,13 +7090,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       ref_log_q = log_q_train
     )
 
-
     if (!all(is.finite(pred_q[6,index]))) {
       stop("Non-finite density ratio after exponentiation.")
     }
-    # pred_q[6,index]=normalized_truncate_q(log_dens_A0, log_dens_A1,
-    #                                       treated = A[index_nk] == 1)
-    # pred_q[6,index]=exp(log_dens_A0 - log_dens_A1)
 
     # tau_1: reuse the same estimated F0(M|X)
     m_vars <- as.numeric(sub("^M", "", grep("^M", selected_vars_mu, value = TRUE)))
@@ -7885,7 +7166,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   theta_hat-theta;sigma_hat
   
   result=c(pred_theta=theta_hat,pred_sig2=sigma_hat,mse_tau,mse_mu,mse_q,mse_pi,mse_tau1,res_mu_tau,sel.rho_pi_a,sel.rho_pi_b,sel.rho_q,sel.rho_p,lambda_mu,lambda_tau1,lambda_tau,mtry_pi,mtry_p,mtry_mu,mtry_tau1,mtry_tau,minsize_pi,minsize_p,minsize_mu,minsize_tau1,minsize_tau)
-  # result_list=list(result=result)                               
   replication_file <- file.path(archive_replication_directory, sprintf("rep_%03d.rds", t))
   temp_file <- paste0(replication_file, ".tmp")
   saveRDS(result, file = temp_file)
@@ -7913,20 +7193,10 @@ tmax=100;Kmb=5;value_trunc=5;n=floor(N/Kmb)
 seed=2026;limit=rerun_workers
 set.seed(seed)
 #--------data generating--------------
-# if (Setting=="a")
 # Setting a: non-logistic pi, nonlinear mu
-# func_link=function(x){(abs(x)+sin(x)+0.1)/(abs(x)+sin(x)+0.7)}
 func_link=function(x){plogis(x)}
-# func_link=function(x){0.2+0.6/(1+abs(x)^3)} #non-logistic function
-#func_link=function(x){pnorm(x)-1/2}
 beta_pi_i=0.5
-# raw = 1 / sqrt(1:20)
-# beta_pi_X = raw / sqrt(sum(raw^2)) * sqrt(3)
-# beta_pi_X = c(beta_pi_X, rep(0, d1 - 20))
-# beta_pi_X=c(1, rep(sqrt(0.2),19),rep(0,d1-20))
-# beta_pi_X = c(rep(1, 3), rep(0.35, 17), rep(0, d1 - 20))
 beta_pi_X = c(0.6, rep(0.2,4), rep(0,d1-5))
-# beta_pi_X = c(rep(1,3), rep(0,d1-3))
 
 beta_mu_i=1
 beta_mu_X=c(rep(0.5,5),rep(0,d1-5))
@@ -7937,14 +7207,11 @@ beta_mu_nl=c(rep(0,3),rep(0,7),rep(0,d1-s_nl))
 
 #X_all follows the normal distribution. 
 X_all=matrix(rtruncnorm(N*d1*tmax,-value_trunc,value_trunc,mean=0),nrow=N*tmax)
-#X_all=matrix(rbeta(N*d1*tmax,1,2),nrow=N*tmax)-1/3
-#X_all <- matrix(rsn(N*d1*tmax, xi = 0, omega = 1.3, alpha = 5),nrow=N*tmax)-0-1.3*5/sqrt(1 + 5^2)*sqrt(2 / pi)
 
 #pi and A
 pi_all=func_link(beta_pi_i+X_all%*%beta_pi_X)
 A_all=rbinom(N*tmax,1,pi_all)
 
-# delta1_all=c(0.8,0.2,0.2,rep(0,d2-3))
 delta1_all = c(1.10,0.55,rep(0,d2-2))
 delta2_all = c(rep(0.45,3),rep(0,d2-3))
 delta2=delta2_all[1]
@@ -7965,7 +7232,6 @@ for (i in 1:d1){
     } else if (abs(i-j)==2){
       Phi[i,j]=0
     }
-    #  Phi[i,j]=0.3^(abs(i-j))
   }
 }
 
@@ -8027,8 +7293,6 @@ rm(phi_dense_codes,phi_dense_units)
 
 #Sigma & U
 Sigma=diag(d2)
-# Sigma[1,2]=0.3; Sigma[2,1]=0.3
-# Sigma[1,3]=0.5; Sigma[3,1]=0.5
 for (i in 1:d2){
   for (j in 1:d2){
     if (abs(i-j)==1){
@@ -8060,7 +7324,6 @@ U_tot_all=scale_Me*U_all+delta2_all_matrix+A_all*delta1_all_matrix
 
 #q
 Inverse=diag(d2)/(scale_Me)^2
-# Inverse[1:3,1:3]=solve(scale_Me^2*Sigma[1:3,1:3])
 Inverse=solve(scale_Me^2*Sigma)
 beta_q_i=as.numeric((delta2_all+1/2*delta1_all)%*%(Inverse%*%delta1_all))
 beta_q_X=scale_XM*Phi%*%(Inverse%*%delta1_all)
@@ -8084,20 +7347,8 @@ scale_xsq=0
 #mu_all
 bsm_all=scale_XM*(X_all)%*%Phi+common_nonlinear_all+delta2_all_matrix
 mu_all=beta_mu_i+(M_all-bsm_all)%*%beta_mu_M+X_all%*%beta_mu_X
-# scale_mix* (U_tot_all[,s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*((U_tot_all[,1]>=delta2_all[1]))*(X_all%*%beta_mu_X)+scale_xsq*rowSums((X_all[,1:3])^2*(U_tot_all[,1:3]-delta2_all_matrix[,1:3]))
-#+exp(scale_exp*(U_tot_all)%*%delta4_all)+scale_mue*(U_tot_all)^2%*%delta3_all
-#+scale_mix*((U_all[,d2]>0)*M_all[,d2-1]*X_all[,1]+(U_all[,d2-1]>0)*M_all[,d2-2]*X_all[,2]+(U_all[,d2-2]>0)*M_all[,d2]*X_all[,3])
-#+(X_all%*%Phi*U_all)%*%beta_mu_mix+scale_abs*abs(U_all)%*%delta4_all
 
-#tau_all
-# bsm_all=scale_XM*(X_all)%*%Phi+delta2_all_matrix
-#tau1_all & tau_all
-tau_all=beta_mu_i+X_all%*%beta_mu_X#+bsm_all%*%beta_mu_M
-# +scale_mue*as.vector((diag(Sigma)+delta2_all^2)%*%delta3_all)+scale_mix*(delta2_all[s_nl:1]*X_all[,1:s_nl])%*%beta_mu_nl[1:s_nl]+scale_sub*(1-pnorm(0))*(X_all%*%beta_mu_X)
-#+as.vector(exp(scale_exp*delta4_all%*%delta2_all+0.5*scale_exp^2*scale_Me^2*delta4_all%*%(Sigma%*%delta4_all)))
-#+scale_mix/2*(delta2)*(X_all[,1]+X_all[,2]+X_all[,3])
-#+scale_abs*sum(sqrt(2/base::pi)*delta4_all)
-#+scale_sub*0*(3-pnorm(delta1_all[1])-pnorm(delta1_all[2])-pnorm(delta1_all[3]))*X_all%*%beta_mu_X
+tau_all=beta_mu_i+X_all%*%beta_mu_X
 tau1_all=tau_all
 
 #theta
@@ -8144,25 +7395,10 @@ standardize_data <- function(X_train, X_test = NULL) {
 }
 # Lasso 变量筛选函数（自动标准化）
 lasso_var_selection <- function(X, y, task = 0) {
-  # std_result <- standardize_data(X)
-  # X_scaled <- std_result$train
-  # if (task == 1) {  # 分类任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "binomial", alpha = 1)
-  # } else {          # 回归任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "gaussian", alpha = 1)
-  # }
-  # beta <- coef(fit, s = "lambda.min")
-  # selected_vars <- rownames(beta)[which(abs(beta)>1e-6)][-1]
-  # if(length(selected_vars)==0){
-  # rf <- ranger(y ~ ., data = data.frame(X=X, y=y), importance = "impurity", num.trees=50)
-  # importance<-importance(rf)
-  # selected_vars <- names(importance)[importance > mean(importance)- sd(importance)]#
-  # # }
-  # if(length(selected_vars)==0){selected_vars=colnames(X)}
   selected_vars=colnames(X)  
   selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
   selected_vars <- gsub("^M\\.", "", selected_vars)
-  return(list(selected_vars = selected_vars))#, model = fit
+  return(list(selected_vars = selected_vars))
 }
 
 select_different_M_components_ks <- function(
@@ -8355,18 +7591,8 @@ multi_y_var_selection <- function(X, M) {
     rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=100)
     importance<-importance(rf)
     selected_vars <- names(importance)[importance > mean(importance)+sd(importance)]#
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)+1/2*sd(importance)]}
-    # if(length(selected_vars)==0){
-    #   rf <- ranger(y ~ ., data = data.frame(X=X, y=y_current), importance = "impurity", num.trees=50)
-    #   importance<-importance(rf)
-    #   selected_vars <- names(importance)[importance > mean(importance)]}
-    # if(length(selected_vars)==0){selected_vars=colnames(X)} else{
     selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
     selected_vars <- gsub("^M\\.", "", selected_vars)
-    # }
     
     # 存储结果
     all_selected_vars[[y_names[i]]] <- selected_vars
@@ -8464,9 +7690,7 @@ fit_mv_rf_cf <- function(X_train, M_train, K = 3,
   )
   
   cv_loss <- matrix(NA_real_, nrow = nrow(tune_grid), ncol = K)
-  
-  
-  
+
   for (v in seq_len(K)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -8658,8 +7882,6 @@ make_stratified_fold_id <- function(A, K = 3, seed = 123) {
   
   fold_id
 }     
-
-
 
 el_drm_raw_q <- function(M) {
   M <- as.matrix(M)
@@ -9182,15 +8404,7 @@ el_drm_fit_density_ratio <- function(
     n_fit <- nrow(x_fit)
     x_dim_fit <- ncol(x_fit)
     q_dim_fit <- ncol(q_fit)
-    
-    # # Do not penalize intercept-related coefficients
-    # penalty_mask <- rep(1, 2 * x_dim_fit * q_dim_fit)
-    
-    # intercept_idx0 <- 1 + (0:(q_dim_fit - 1)) * x_dim_fit
-    # intercept_idx1 <- x_dim_fit * q_dim_fit + intercept_idx0
-    
-    # penalty_mask[c(intercept_idx0, intercept_idx1)] <- 0
-    
+
     if (is.null(eta_fit)) {
       eta_fit <- 1 / max(q_dim_fit + ridge_lambda, 1)
     }
@@ -9206,7 +8420,6 @@ el_drm_fit_density_ratio <- function(
       }
       if (is.null(prof) || !is.finite(prof$loss)) return(Inf)
       prof$loss / n_fit + 0.5 * ridge_lambda * sum(theta^2)
-      # prof$loss / n_fit + 0.5 * ridge_lambda * sum((penalty_mask * theta)^2)
     }
     
     prof_cur <- el_drm_approx_loss_grad(theta_cur, x_fit, q_fit, A_fit, p_fit)
@@ -9299,7 +8512,6 @@ el_drm_fit_density_ratio <- function(
       objective = objective(theta_cur, prof_final),
       loss = prof_final$loss / n_fit,
       ridge_lambda = ridge_lambda,
-      # eta = eta_fit
       eta = eta_cur  
     )
   }
@@ -9492,9 +8704,6 @@ cat("\n summary(pi_all)=",paste(capture.output(summary(pi_all)), collapse = "\n"
 cat("\n\n summary(p_all)=",paste(capture.output(summary(p_all)), collapse = "\n"), "\n", file = log_file, append = TRUE)
 cat("\n\n summary(1/(1+q_all))=",paste(capture.output(summary(1/(1+q_all))), collapse = "\n"), "\n", file = log_file, append = TRUE)
 
-#num_cores <- detectCores()
-#print(paste("Available cores:", num_cores))
-
 cl <- makeCluster(min(limit,length(rerun_replication_ids)),outfile=archive_log_file)  # 使用核心数减 1，保留一个核心给操作系统
 registerDoParallel(cl)
 invisible(parallel::clusterCall(cl,function() {
@@ -9550,7 +8759,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   pi=pi_all[(t-1)*N+1:N];
   p=p_all[(t-1)*N+1:N];
   q=q_all[(t-1)*N+1:N];
-  f0=f_0_all[(t-1)*N+1:N];#可以删掉
+  f0=f_0_all[(t-1)*N+1:N];
   f1=f_1_all[(t-1)*N+1:N];
   tau=tau_all[(t-1)*N+1:N];
   tau1=tau1_all[(t-1)*N+1:N];
@@ -9558,8 +8767,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   set.seed(seed)  
   
   #polynomial transform
-  #X_poly=poly(X,degree=2);M_poly=poly(M,degree=2);
-  #S_poly=poly(cbind(X,M),degree=2);
   X_poly=X;S_poly=cbind(X,M);M_poly=M;  
   
   #Oracle
@@ -9592,7 +8799,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     rm(index_nk_2345,index_train23, index_train45)
     
     #pi_a
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -9605,10 +8811,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_train1)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[1,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[1,index]-pi[index])/pi[index]))
     
     #pi_b
-    # sel.rho_pi_b=c()
     rho.range0=sqrt(log(d1)/length(index_train1))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -9622,20 +8826,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[1,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[1,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train1,])/length(index_train2)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*X[index_train1,])/length(index_train2)
-    # iw=as.numeric(A[index_train2]/plogis(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])-(1-A[index_train2])/(1-plogis(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))
-    # mean(iw)
-    # mean(colSums(iw*X[index_train2,])/length(index_train2))
-    # iw_oracle=as.numeric(A[index_train2]/pi[index_train2]-(1-A[index_train2])/(1-pi[index_train2]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_train2,])/length(index_train2))
-    
+
     #q
-    # sel.rho_q=c()
     S_index2=S_poly[index_train2,]
     rho.range1=sqrt(log(d1+d2)/length(index_train2))*rho.range1_default
     boolFalse=FALSE #repeat until no errors occur
@@ -9651,58 +8843,24 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_S_index2=colMeans(-S_index2);sd_S_index2=colSds(-S_index2);beta_q_after=rep(0,length(beta_q));beta_q_after[-1]=beta_q[-1]/sd_S_index2;beta_q_after[1]=beta_q[1]-sum((mean_S_index2/sd_S_index2)%*%beta_q[-1]);beta_q_after[1]=-beta_q_after[1]
     beta_q=beta_q_after
     pred_q[1,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])),max(abs(pred_q[1,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]],pred_q[1,index_A[abs(pred_q[1,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[1,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # max(abs(beta_q[1]+cbind(X[index,],M[index,])%*%beta_q[-1]-beta_q_i-X[index,]%*%beta_q_X-M[index,]%*%beta_q_M))
-    # grad_q=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_train2,],M[index_train2,])%*%beta_q[-1])-(1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_train2)
-    # grad_q_phi=colSums(as.numeric(A[index_train2]/func_link(alpha_a[1]+X[index_train2,]%*%alpha_a[-1]))*X[index_train2,]%*%Phi-as.numeric((1-A[index_train2])/(1-func_link(alpha_b[1]+X[index_train2,]%*%alpha_b[-1])))*M[index_train2,])/length(index_train2)
-    
+
     #mu
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_train3,],y=Y[index_train3],weights=A[index_train3]*exp(beta_q[1]+S_poly[index_train3,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_train3,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[1,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_train3)))
-    # beta_mu=as.vector(coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[1,index]-mu[index])
-    
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A]))
-    
+
     #tau1
     index_train4_A0=index_train4[which(A[index_train4]==0)]
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train4_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_train4,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0 || length(pred_mu_new1)<8
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[1,index]=rep(tau1_training_mean,length(index)); lambda_tau1=c(lambda_tau1,-1)} else{
         fit_lasso_tau1=cv.glmnet(x=X_poly[index_train4_A0,],y=pred_mu_new1, weights=exp(alpha_b[1]+X_poly[index_train4_A0,]%*%alpha_b[-1]),family="gaussian",alpha=1)
         pred_tau1[1,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min");
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[1,index]
-    
-    #tau1-gamma
-    # lambda_mu=c()
-    # fit_lasso_tau1=cv.glmnet(x=X[index_train4,],y=M[index_train4,]%*%beta_mu[(1+d1+1):(1+d1+d2)], weights=(1-A[index_train4])*exp(alpha_b[1]+X[index_train4,]%*%alpha_b[-1]),family="gaussian",alpha=1)
-    # pred_tau1[1,index]=beta_mu[1]+X[index,]%*%beta_mu[2:(1+d1)]+predict(fit_lasso_tau1,newx=X[index,],s="lambda.min")
-    # lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_train4)))
-    
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[1,index_A0]-pred_tau1[1,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[1,index_A0])*(pred_mu[1,index_A0]-pred_tau1[1,index_A0]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index]))
-    # summary(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new2=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_train5,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new2=predict(fit_lasso_mu,newx=S_poly[index_train5,], s="lambda.min")
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_train5))} else{      pred_tau1_new1=predict(fit_lasso_tau1,newx=X_poly[index_train5,],s="lambda.min")
       }
     y_pseudo=pred_tau1_new1+exp(beta_q[1]+S_poly[index_train5,]%*%beta_q[-1])*(Y[index_train5]-pred_mu_new2)
@@ -9710,16 +8868,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       fit_lasso_tau=cv.glmnet(x=X_poly[index_train5,],y=y_pseudo, weights=A[index_train5]*exp(-alpha_a[1]-X_poly[index_train5,]%*%alpha_a[-1]),family="gaussian",alpha=1)
       pred_tau[1,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_train4)))}
-    #test: estimation of tau
-    # summary(abs(pred_tau[1,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[1,index_A]/(pred_pi_a[1,index_A])*(Y[index_A]-pred_mu[1,index_A])+A[index_A]/(pred_pi_a[1,index_A])*(pred_tau1[1,index_A]-pred_tau[1,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])==max(A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index]))];cbind(pred_pi_a[1,index_max_0],pred_pi_b[1,index_max_0],pred_q[1,index_max_0],pred_mu[1,index_max_0],pred_tau1[1,index_max_0],pred_tau[1,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[1,index]=A[index]*pred_q[1,index]/(pred_pi_a[1,index])*(Y[index]-pred_mu[1,index])+(1-A[index])/(1-pred_pi_b[1,index])*(pred_mu[1,index]-pred_tau1[1,index])+A[index]/(pred_pi_a[1,index])*(pred_tau1[1,index]-pred_tau[1,index])+pred_tau[1,index];summary(pred_theta[1,index])
-    # pred_theta[7,index]=A[index]*pred_q[6,index]/(pred_pi_a[7,index])*(Y[index]-pred_mu[7,index])+(1-A[index])/(1-pred_pi_a[7,index])*(pred_mu[7,index]-pred_tau[7,index])+pred_tau[7,index];
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -9746,7 +8895,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[1]/sqrt(log(d1)/length(index_nk)))
     alpha_a=fit_Log1_1$sel.bet[,1]
     pred_pi_a[2,index]=plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]) #pi_a(X)
-    # mean((abs(pred_pi_a[2,index]-pi[index])/pi[index]))
     
     #pi_b
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
@@ -9762,18 +8910,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,1]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[2,index]=plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]) #pi_b(X)
-    # mean((abs(pred_pi_b[2,index]-pi[index])/pi[index]))
-    
-    #For test of imputation error of q
-    # grad_pi_a=colSums(as.numeric(1-A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,])/length(index_nk)
-    # grad_pi_b=colSums(as.numeric(1-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*X[index_train1,])/length(index_nk)
-    # iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])-(1-A[index_nk])/(1-plogis(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))
-    # mean(iw)
-    # (colSums(iw*X[index_nk,])/length(index_nk))
-    # iw_oracle=as.numeric(A[index_nk]/pi[index_nk]-(1-A[index_nk])/(1-pi[index_nk]))
-    # mean(iw_oracle)
-    # mean(colSums(iw_oracle*X[index_nk,])/length(index_nk))
-    
+
     #q
     S_index2=S_poly[index_nk,]
     rho.range1=sqrt(log(d1+d2)/length(index_nk))*rho.range1_default
@@ -9781,7 +8918,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     while(boolFalse==FALSE){
       tryCatch({
         fit_Log2_1=glm.regu.cv(x=scale(-S_index2), y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=TRUE,tune.cut=FALSE)
-        # fit_Log2_1=glm.regu.cv(x=-S_poly[index_nk,], y=A[index_nk], iw=as.numeric(A[index_nk]/plogis(alpha_a[1]+X_poly[index_nk,]%*%alpha_a[-1])+(1-A[index_nk])/(1-plogis(alpha_b[1]+X_poly[index_nk,]%*%alpha_b[-1]))),fold=5,loss="cal",rho.seq=rho.range1, ann.init=FALSE,tune.cut=FALSE)
         boolFalse=TRUE
       },error=function(e){
       },finally={})
@@ -9792,29 +8928,14 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     beta_q[1]=-beta_q[1]
     beta_q=beta_q_after
     pred_q[2,index]=exp(beta_q[1]+S_poly[index,]%*%beta_q[-1])  #q(S)
-    
-    # index_A=index[A[index]==1]
-    # index_A=index_A[q[index_A]>=1]
-    # cbind(mean(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])),max(abs(pred_q[2,index_A]-q[index_A])/q[index_A]));
-    # cbind(q[index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]],pred_q[2,index_A[abs(pred_q[2,index_A]-q[index_A])/q[index_A]==max(abs(pred_q[2,index_A]-q[index_A])/q[index_A])]])
-    # sum((beta_q-beta_q_S)^2)
-    
-    # grad_q=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1])*exp(beta_q[1]+cbind(X[index_nk,],M[index_nk,])%*%beta_q[-1])-(1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*cbind(X[index_train1,],M[index_train1,]))/length(index_nk)
-    # grad_q_phi=colSums(as.numeric(A[index_nk]/func_link(alpha_a[1]+X[index_nk,]%*%alpha_a[-1]))*X[index_nk,]%*%Phi-as.numeric((1-A[index_nk])/(1-func_link(alpha_b[1]+X[index_nk,]%*%alpha_b[-1])))*M[index_nk,])/length(index_nk)
-    
+
     #mu
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk_A,],y=Y[index_nk_A],weights=exp(beta_q[1]+S_poly[index_nk_A,]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_nk_A,]%*%alpha_a[-1])),family="gaussian",alpha=1)
     pred_mu[2,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[2,index]-mu[index])
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A]))
-    # summary(A[index_A]*q[index_A]/(pi[index_A])*(Y[index_A]-mu[index_A])-A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A]))
     
     #tau1
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A0,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)==0
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
@@ -9822,17 +8943,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
         pred_tau1[2,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
         lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
       }
-    # beta_tau1=as.vector(coefficients=coef(fit_lasso_tau1$glmnet.fit, s=fit_lasso_tau1$lambda.min))
-    # pred_tau1_test=pred_tau1[2,index]
-    
-    # summary(1-A[index])/(1-pi[index])*(mu[index]-tau1[index])
-    # check: estimation of tau1 on A==0
-    # index_A0=index[A[index]==0]
-    # summary(pred_mu[2,index_A0]-pred_tau1[2,index_A0])
-    # summary((1-A[index_A0])/(1-pred_pi_b[2,index_A0])*(pred_mu[2,index_A0]-pred_tau1[2,index_A0]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index]))
-    # summary(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1_test))
-    
+
     #tau
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk_A,,drop=FALSE],s="lambda.min"))
     if (tau1_constant_response){pred_tau1_new1=rep(tau1_training_mean,length(index_nk_A))} else{
@@ -9844,15 +8955,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau[2,index]=predict(fit_lasso_tau,newx=X_poly[index,],s="lambda.min")
       lambda_tau=c(lambda_tau,fit_lasso_tau$lambda.min/sqrt(log(d1)/length(index_nk)))
     }
-    #test: estimation of tau
-    # summary(abs(pred_tau[2,index]-tau[index]))
-    
-    #test the summation of terms that should be offset to zero
-    # summary(A[index_A]*pred_q[2,index_A]/(pred_pi_a[2,index_A])*(Y[index_A]-pred_mu[2,index_A])+A[index_A]/(pred_pi_a[2,index_A])*(pred_tau1[2,index_A]-pred_tau[2,index_A]))
-    
-    # index_max_0=index[A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])==max(A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index]))];cbind(pred_pi_a[2,index_max_0],pred_pi_b[2,index_max_0],pred_q[2,index_max_0],pred_mu[2,index_max_0],pred_tau1[2,index_max_0],pred_tau[2,index_max_0]);cbind(pi[index_max_0],q[index_max_0],mu[index_max_0],tau[index_max_0])
-    #test theta
-    # pred_theta[2,index]=A[index]*pred_q[2,index]/(pred_pi_a[2,index])*(Y[index]-pred_mu[2,index])+(1-A[index])/(1-pred_pi_b[2,index])*(pred_mu[2,index]-pred_tau1[2,index])+A[index]/(pred_pi_a[2,index])*(pred_tau1[2,index]-pred_tau[2,index])+pred_tau[2,index];summary(pred_theta[2,index])
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -9879,7 +8982,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     #pi using Random forest
     lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)))
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -9950,8 +9053,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr1
     )
-    # pred_q[3,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[3,index]=exp(log_ratio_index)
 
     log_info(paste(
       "QR1 fold", k,
@@ -9968,7 +9069,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[3,index]=predict(mu_rf$finalModel, data=cbind(X[index, ],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
 
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk2_A0,],M[index_nk2_A0,])[,selected_vars_mu,drop=FALSE])
@@ -9978,12 +9078,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
     pred_tau1[3,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-    # summary(pred_tau1[3,index])
 
     #tau
-    # prediction_pi_1=pmax(pmin(predict(pi_rf$finalModel, data=X[index_nk3_A,selected_vars_pi,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_p_1=pmax(pmin(predict(p_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A, ])[,selected_vars_p,drop=FALSE])$predictions[, 2], 0.99), 0.01)
-    # prediction_q_1=(1-prediction_p_1)/prediction_p_1*prediction_pi_1/(1-prediction_pi_1)
 
     log_ratio_index_nk3_A <- el_drm_predict_log_ratio(f_el_drm_sdr1,
                                                       X[index_nk3_A, x_vars, drop = FALSE],
@@ -9992,8 +9088,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index_nk3_A,
       ref_log_q = ref_log_q_sdr1
     )
-    # prediction_q_1=exp(pmax(pmin(log_ratio_index_nk3_A, log(100)), log(0.01)))
-    # prediction_q_1=exp(log_ratio_index_nk3_A)
 
     prediction_mu_2=predict(mu_rf$finalModel, data=cbind(X[index_nk3_A,],M[index_nk3_A,])[,selected_vars_mu,drop=FALSE])
     prediction_tau1_1=predict(tau1_rf$finalModel, data=X[index_nk3_A,selected_vars_tau1,drop=FALSE])
@@ -10005,13 +9099,10 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
 
     pred_tau[3,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
-    # p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif)
     pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2,prediction_tau1_1)
     rm(prediction_q_1)
     gc()
-    # pred_theta[3,index]=A[index]*pred_q[3,index]/(pred_pi_a[3,index])*(Y[index]-pred_mu[3,index])+(1-A[index])/(1-pred_pi_b[3,index])*(pred_mu[3,index]-pred_tau1[3,index])+A[index]/(pred_pi_a[3,index])*(pred_tau1[3,index]-pred_tau[3,index])+pred_tau[3,index];summary(pred_theta[3,index]);
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
@@ -10092,8 +9183,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr2_full
     )
-    # pred_q[4,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[4,index]=exp(log_ratio_index)
     log_info(paste(
       "QR2 fold", k,
       "ridge_lambda =", f_el_drm$ridge_lambda,
@@ -10109,7 +9198,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[4,index]=predict(mu_rf$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
   
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=cbind(X[index_nk_A0,],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -10119,7 +9207,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau1[4,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
-    # summary(pred_tau1[3,index])
   
     #tau: use full outer-training-fold predictions for the QR2 pseudo-outcome.
     prediction_q_1 <- normalized_truncate_q(
@@ -10139,8 +9226,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau[4,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
     mtry_tau=c(mtry_tau,tau_rf$bestTune$mtry)
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
-    # pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi);p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif);rm(prediction_q_1)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2_preds,prediction_tau1_1)
     gc()
   }
@@ -10157,7 +9242,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     index_nk2=index_nk[-(1:floor(length(index_nk)/2))]
     
     #pi
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -10176,7 +9260,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_pi_b[8,index]=pred_pi_a[5,index]
     
     #p
-    # sel.rho_p=c()
     rho.range0=sqrt(log(d1+d2)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -10194,12 +9277,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_q[8,index]=pred_q[5,index]
     
     #mu-1
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk1[A[index_nk1]==1],],y=Y[index_nk1[A[index_nk1]==1]],family="gaussian",alpha=1)
     pred_mu[5,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk1)))
-    # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # summary(pred_mu[4,index]-mu[index])
     
     #tau1-1
     pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk2[A[index_nk2]==0],],s="lambda.min")
@@ -10208,30 +9288,13 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       pred_tau1[5,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
       lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk2)))
     }
-    
-    # #mu-2
-    # # lambda_mu=c()
-    # fit_lasso_mu=cv.glmnet(x=S_poly[index_nk[A[index_nk]==1],],y=Y[index_nk[A[index_nk]==1]],family="gaussian",alpha=1)
-    # pred_mu[8,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min")
-    # lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d1+d2)/length(index_nk)))
-    # # beta_mu=as.vector(coefficients=coef(fit_lasso_mu$glmnet.fit, s=fit_lasso_mu$lambda.min))
-    # # summary(pred_mu[4,index]-mu[index])
-    
-    # #tau1-2
-    # pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk[A[index_nk]==0],],s="lambda.min")
-    # if (sd(pred_mu_new1_miles)==0){pred_tau1[8,index]=rep(mean(pred_mu_new1_miles),length(index));lambda_tau1=c(lambda_tau1,0)} else{
-    #   fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk[A[index_nk]==0],],y=pred_mu_new1_miles,family="gaussian",alpha=1)
-    #   pred_tau1[8,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min")
-    #   lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1)/length(index_nk)))
-    # }
-    
+
   }
   lock_obj=lock(log_file, timeout=5)
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | O-TR' | complete",t,tmax))
   set.seed(seed)
-  
-  
+
   #-------------TR & O-TR------------------
   for (k in 1:Kmb){
     index=(1:n)+(k-1)*n
@@ -10260,14 +9323,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     minsize_pi=c(minsize_pi,pi_rf_TR$bestTune$min.node.size)
     pi_rf_TR=butcher(pi_rf_TR);rm(pi_rf_TR,prediction_pi_TR);gc()
 
-    #p using Random forest-O-TR
     lasso_p <- lasso_var_selection(cbind(X[index_nk,],M[index_nk,]),A[index_nk],task=1)
     selected_vars_p <- lasso_p$selected_vars
-    # selected_M=colnames(M)[select_different_M_components_ks(M[index_nk, ], A[index_nk])]
-    # selected_vars_p <- c(colnames(X[index_nk,]),selected_M)
-    # selected_A1=multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    # selected_A0=multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
-    # selected_vars_p <- unique(c(selected_A1,selected_A0,selected_M))
     p_rf_TR=caret::train(x=cbind(X[index_nk,],M[index_nk,])[,selected_vars_p,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_p),1), metric="ROC", importance="none", num.trees=generate_num_tree(length(index_nk)) )
     pred_p[4,index]=pmax(pmin(predict(p_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_p,drop=FALSE])$predictions[, 2],0.99), 0.01)
     pred_q[7,index]=(1-pred_p[4,index])/pred_p[4,index]*pred_pi_a[7,index]/(1- pred_pi_a[7,index])
@@ -10302,7 +9359,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[9,index]=pred_mu[6,index]
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
-    # summary(pred_mu[5,index]-mu[index])
 
     #tau1 for O-TR2
     prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=cbind(X[index_nk_A0, ],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
@@ -10317,8 +9373,8 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     selected_M <- 1:ncol(M)
     ds=length(selected_M)
     x_vars <- multi_y_var_selection(X[index_nk, ], M[index_nk, selected_M, drop = FALSE])$union_vars
-    selected_A1=x_vars#multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    selected_A0=x_vars#multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
+    selected_A1=x_vars
+    selected_A0=x_vars
 
     # A=1: inner-CV tuning of mtry and nodesize
     rf_mean_A1 <- fit_mv_rf_cf(
@@ -10333,7 +9389,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     mean_rf_A <- rf_mean_A1$fit
     mean_train_A1 <- rf_mean_A1$oob_pred
     residuals_A1 <- M[index_nk_A, selected_M, drop = FALSE] - mean_train_A1
-
 
     # A=0: independently tune mtry and nodesize
     rf_mean_A0 <- fit_mv_rf_cf(
@@ -10360,13 +9415,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     residuals_A1 <- sweep(residuals_A1, 2, colMeans(residuals_A1), "-")
     residuals_A0 <- sweep(residuals_A0, 2, colMeans(residuals_A0), "-")
     residuals_pool <- rbind(residuals_A1, residuals_A0)
-
-    # cov_result <- compute_shrinkage_cov(residuals_pool, lambda = "auto")
-    # sig_M_pool <- cov_result$matrix
-    # colnames(sig_M_pool) <- colnames(M)[selected_M]
-    # rownames(sig_M_pool) <- colnames(M)[selected_M]
-    # sig_M_A1 <- sig_M_pool
-    # sig_M_A0 <- sig_M_pool
 
     cov_A1 <- compute_shrinkage_cov(residuals_A1, lambda = "auto")
     cov_A0 <- compute_shrinkage_cov(residuals_A0, lambda = "auto")
@@ -10399,10 +9447,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     colnames(mean_pred_A) <- colnames(M)[selected_M]
 
     log_dens_A1<-dmvnorm(M[index, selected_M]-mean_pred_A, sigma=sig_M_A1, log= TRUE)
-    # log_dens_A1<-log(pmax(pmin(exp(log_dens_A1), 0.999), 0.001))
     log_dens_A0<-dmvnorm(M[index, selected_M]-mean_pred_A0, sigma=sig_M_A0, log= TRUE)
-    # log_dens_A0<-log(pmax(pmin(exp(log_dens_A0), 0.999), 0.001))
-    # pred_q[6,index]=pmax(pmin(exp(log_dens_A0 - log_dens_A1),100),0.01)
 
     log_q_test_raw <- log_dens_A0 - log_dens_A1
 
@@ -10411,13 +9456,9 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       ref_log_q = log_q_train
     )
 
-
     if (!all(is.finite(pred_q[6,index]))) {
       stop("Non-finite density ratio after exponentiation.")
     }
-    # pred_q[6,index]=normalized_truncate_q(log_dens_A0, log_dens_A1,
-    #                                       treated = A[index_nk] == 1)
-    # pred_q[6,index]=exp(log_dens_A0 - log_dens_A1)
 
     # tau_1: reuse the same estimated F0(M|X)
     m_vars <- as.numeric(sub("^M", "", grep("^M", selected_vars_mu, value = TRUE)))
@@ -10491,7 +9532,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   theta_hat-theta;sigma_hat
   
   result=c(pred_theta=theta_hat,pred_sig2=sigma_hat,mse_tau,mse_mu,mse_q,mse_pi,mse_tau1,res_mu_tau,sel.rho_pi_a,sel.rho_pi_b,sel.rho_q,sel.rho_p,lambda_mu,lambda_tau1,lambda_tau,mtry_pi,mtry_p,mtry_mu,mtry_tau1,mtry_tau,minsize_pi,minsize_p,minsize_mu,minsize_tau1,minsize_tau)
-  # result_list=list(result=result)                               
   replication_file <- file.path(archive_replication_directory, sprintf("rep_%03d.rds", t))
   temp_file <- paste0(replication_file, ".tmp")
   saveRDS(result, file = temp_file)

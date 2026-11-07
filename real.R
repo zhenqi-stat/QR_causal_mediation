@@ -212,7 +212,6 @@ expand_covariates <- function(data, X_conti, X_binar, remove_zero_var = TRUE) {
   return(result)
 }
 
-
 expand_covariates_ck <- function(data, X_conti, X_binar, remove_zero_var = TRUE) {
   
   # 输入验证
@@ -457,274 +456,6 @@ expand_covariates_200 <- function(data, X_conti, X_binar, remove_zero_var = TRUE
   
   return(result)
 }
-
-# expand_covariates_with_mediation <- function(data, X_conti, X_binar, M_conti, 
-#                                              add_conti_binar_interactions = FALSE,
-#                                              add_M_X_interactions = TRUE,
-#                                              remove_zero_var = TRUE) {
-#   
-#   # 输入验证
-#   if (!is.data.frame(data)) {
-#     stop("data must be a data.frame")
-#   }
-#   
-#   # 确保所有变量存在
-#   missing_vars <- setdiff(c(X_conti, X_binar, M_conti), names(data))
-#   if (length(missing_vars) > 0) {
-#     stop("Missing variables in data: ", paste(missing_vars, collapse = ", "))
-#   }
-#   
-#   n <- nrow(data)
-#   
-#   # ========== 第一部分: X_expanded (仅使用X_conti和X_binar) ==========
-#   
-#   # 1.1 连续变量X_conti的线性项和二次项
-#   X_linear <- as.matrix(data[, X_conti, drop = FALSE])
-#   X_sq <- as.matrix(data[, X_conti, drop = FALSE]^2)
-#   
-#   # 1.2 连续变量X_conti之间的两两交互项(线性×线性)
-#   X_inter_names <- character(0)
-#   X_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#   n_X_conti <- length(X_conti)
-#   
-#   if (n_X_conti >= 2) {
-#     for (i in 1:(n_X_conti - 1)) {
-#       for (j in (i + 1):n_X_conti) {
-#         inter <- X_linear[, i] * X_linear[, j]
-#         X_inter_matrix <- cbind(X_inter_matrix, inter)
-#         X_inter_names <- c(X_inter_names, paste0(X_conti[i], "_", X_conti[j]))
-#       }
-#     }
-#   }
-#   
-#   # 1.3 二元变量X_binar的线性项
-#   B_linear <- as.matrix(data[, X_binar, drop = FALSE])
-#   
-#   # 1.4 二元变量X_binar之间的两两交互项
-#   B_inter_names <- character(0)
-#   B_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#   n_X_binar <- length(X_binar)
-#   
-#   if (n_X_binar >= 2) {
-#     for (i in 1:(n_X_binar - 1)) {
-#       for (j in (i + 1):n_X_binar) {
-#         inter <- B_linear[, i] * B_linear[, j]
-#         B_inter_matrix <- cbind(B_inter_matrix, inter)
-#         B_inter_names <- c(B_inter_names, paste0(X_binar[i], "_", X_binar[j]))
-#       }
-#     }
-#   }
-#   
-#   # 初始化X_expanded
-#   X_expanded <- cbind(
-#     X_linear, X_sq, X_inter_matrix, B_linear, B_inter_matrix
-#   )
-#   
-#   colnames(X_expanded) <- c(
-#     X_conti, 
-#     paste0(X_conti, "_sq"),
-#     X_inter_names,
-#     X_binar,
-#     B_inter_names
-#   )
-#   
-#   # 1.5 可选: 连续变量(X_conti)与二元变量的交互项
-#   if (add_conti_binar_interactions) {
-#     # 连续变量的线性项×二元变量
-#     XB_lin_inter_names <- character(0)
-#     XB_lin_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#     
-#     # 连续变量的二次项×二元变量
-#     XB_sq_inter_names <- character(0)
-#     XB_sq_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#     
-#     for (c_var in X_conti) {
-#       for (b_var in X_binar) {
-#         # 线性项交互
-#         inter_lin <- data[[c_var]] * data[[b_var]]
-#         XB_lin_inter_matrix <- cbind(XB_lin_inter_matrix, inter_lin)
-#         XB_lin_inter_names <- c(XB_lin_inter_names, paste0(c_var, "_", b_var))
-#         
-#         # 二次项交互
-#         inter_sq <- (data[[c_var]]^2) * data[[b_var]]
-#         XB_sq_inter_matrix <- cbind(XB_sq_inter_matrix, inter_sq)
-#         XB_sq_inter_names <- c(XB_sq_inter_names, paste0(c_var, "_sq_", b_var))
-#       }
-#     }
-#     
-#     # 添加到X_expanded
-#     X_expanded <- cbind(
-#       X_expanded, 
-#       XB_lin_inter_matrix, 
-#       XB_sq_inter_matrix
-#     )
-#     
-#     colnames(X_expanded) <- c(
-#       colnames(X_expanded)[1:(ncol(X_expanded) - ncol(XB_lin_inter_matrix) - ncol(XB_sq_inter_matrix))],
-#       XB_lin_inter_names,
-#       XB_sq_inter_names
-#     )
-#   }
-#   
-#   # ========== 第二部分: M_expanded (使用M_conti和X_conti) ==========
-#   
-#   # 2.1 中介变量M_conti的线性项和二次项
-#   M_linear <- as.matrix(data[, M_conti, drop = FALSE])
-#   M_sq <- as.matrix(data[, M_conti, drop = FALSE]^2)
-#   
-#   # 2.2 中介变量M_conti之间的两两交互项(线性×线性)
-#   M_inter_names <- character(0)
-#   M_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#   n_M_conti <- length(M_conti)
-#   
-#   if (n_M_conti >= 2) {
-#     for (i in 1:(n_M_conti - 1)) {
-#       for (j in (i + 1):n_M_conti) {
-#         inter <- M_linear[, i] * M_linear[, j]
-#         M_inter_matrix <- cbind(M_inter_matrix, inter)
-#         M_inter_names <- c(M_inter_names, paste0(M_conti[i], "_", M_conti[j]))
-#       }
-#     }
-#   }
-#   
-#   # 初始化M_expanded
-#   M_expanded <- cbind(M_linear, M_sq, M_inter_matrix)
-#   colnames(M_expanded) <- c(
-#     M_conti,
-#     paste0(M_conti, "_sq"),
-#     M_inter_names
-#   )
-#   
-#   # 2.3 M的线性项与X的连续变量交互
-#   if (add_M_X_interactions) {
-#     # M的线性项与X_conti的线性项交互
-#     M_X_lin_inter_names <- character(0)
-#     M_X_lin_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#     
-#     # M的线性项与X_conti的二次项交互
-#     M_X_sq_inter_names <- character(0)
-#     M_X_sq_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#     
-#     # M的线性项与X_binar交互
-#     M_B_inter_names <- character(0)
-#     M_B_inter_matrix <- matrix(0, nrow = n, ncol = 0)
-#     
-#     for (m_var in M_conti) {
-#       # 与X_conti线性项交互
-#       for (c_var in X_conti) {
-#         inter_lin <- data[[m_var]] * data[[c_var]]
-#         M_X_lin_inter_matrix <- cbind(M_X_lin_inter_matrix, inter_lin)
-#         M_X_lin_inter_names <- c(M_X_lin_inter_names, paste0(m_var, "_", c_var))
-#       }
-#       
-#       # 与X_conti二次项交互
-#       for (c_var in X_conti) {
-#         inter_sq <- data[[m_var]] * (data[[c_var]]^2)
-#         M_X_sq_inter_matrix <- cbind(M_X_sq_inter_matrix, inter_sq)
-#         M_X_sq_inter_names <- c(M_X_sq_inter_names, paste0(m_var, "_", c_var, "_sq"))
-#       }
-#       
-#       # 与X_binar交互
-#       for (b_var in X_binar) {
-#         inter_bin <- data[[m_var]] * data[[b_var]]
-#         M_B_inter_matrix <- cbind(M_B_inter_matrix, inter_bin)
-#         M_B_inter_names <- c(M_B_inter_names, paste0(m_var, "_", b_var))
-#       }
-#     }
-#     
-#     # 添加到M_expanded
-#     M_expanded <- cbind(
-#       M_expanded, 
-#       M_X_lin_inter_matrix, 
-#       M_X_sq_inter_matrix,
-#       M_B_inter_matrix
-#     )
-#     
-#     colnames(M_expanded) <- c(
-#       colnames(M_expanded)[1:(ncol(M_expanded) - ncol(M_X_lin_inter_matrix) - ncol(M_X_sq_inter_matrix) - ncol(M_B_inter_matrix))],
-#       M_X_lin_inter_names,
-#       M_X_sq_inter_names,
-#       M_B_inter_names
-#     )
-#   }
-#   
-#   # 2.4 可选: 如果需要，M的二次项与X的交互（默认不添加）
-#   # 这部分可以根据需要添加，但根据用户要求，目前不添加
-#   
-#   # ========== 第三部分: 去除方差为0的列 ==========
-#   
-#   if (remove_zero_var) {
-#     # 处理X_expanded
-#     X_variances <- apply(X_expanded, 2, var, na.rm = TRUE)
-#     X_zero_var_cols <- which(X_variances == 0)
-#     if (length(X_zero_var_cols) > 0) {
-#       cat("Removing", length(X_zero_var_cols), "columns with zero variance from X_expanded\n")
-#       X_expanded <- X_expanded[, -X_zero_var_cols, drop = FALSE]
-#     }
-#     
-#     # 处理M_expanded
-#     M_variances <- apply(M_expanded, 2, var, na.rm = TRUE)
-#     M_zero_var_cols <- which(M_variances == 0)
-#     if (length(M_zero_var_cols) > 0) {
-#       cat("Removing", length(M_zero_var_cols), "columns with zero variance from M_expanded\n")
-#       M_expanded <- M_expanded[, -M_zero_var_cols, drop = FALSE]
-#     }
-#   }
-#   
-#   # ========== 第四部分: 输出 ==========
-#   
-#   cat("\n=== 变量生成统计 ===\n")
-#   cat("X_expanded: ", ncol(X_expanded), "个变量\n")
-#   cat("M_expanded: ", ncol(M_expanded), "个变量\n")
-#   cat("总计: ", ncol(X_expanded) + ncol(M_expanded), "个变量\n")
-#   
-#   # 计算变量数量
-#   n_X_linear <- length(X_conti)
-#   n_X_sq <- length(X_conti)
-#   n_X_inter <- ifelse(n_X_conti >= 2, choose(n_X_conti, 2), 0)
-#   n_B_linear <- length(X_binar)
-#   n_B_inter <- ifelse(n_X_binar >= 2, choose(n_X_binar, 2), 0)
-#   
-#   n_XB_lin_inter <- ifelse(add_conti_binar_interactions, n_X_conti * n_X_binar, 0)
-#   n_XB_sq_inter <- ifelse(add_conti_binar_interactions, n_X_conti * n_X_binar, 0)
-#   
-#   n_M_linear <- length(M_conti)
-#   n_M_sq <- length(M_conti)
-#   n_M_inter <- ifelse(n_M_conti >= 2, choose(n_M_conti, 2), 0)
-#   
-#   n_M_X_lin_inter <- ifelse(add_M_X_interactions, n_M_conti * n_X_conti, 0)
-#   n_M_X_sq_inter <- ifelse(add_M_X_interactions, n_M_conti * n_X_conti, 0)
-#   n_M_B_inter <- ifelse(add_M_X_interactions, n_M_conti * n_X_binar, 0)
-#   
-#   cat("\n=== 变量构成分解 ===\n")
-#   cat("X_expanded 构成:\n")
-#   cat("  - X_conti 线性项: ", n_X_linear, "\n")
-#   cat("  - X_conti 二次项: ", n_X_sq, "\n")
-#   cat("  - X_conti 两两交互(线性×线性): ", n_X_inter, "\n")
-#   cat("  - X_binar 线性项: ", n_B_linear, "\n")
-#   cat("  - X_binar 两两交互: ", n_B_inter, "\n")
-#   if (add_conti_binar_interactions) {
-#     cat("  - X_conti线性项 × X_binar: ", n_XB_lin_inter, "\n")
-#     cat("  - X_conti二次项 × X_binar: ", n_XB_sq_inter, "\n")
-#   }
-#   
-#   cat("\nM_expanded 构成:\n")
-#   cat("  - M_conti 线性项: ", n_M_linear, "\n")
-#   cat("  - M_conti 二次项: ", n_M_sq, "\n")
-#   cat("  - M_conti 两两交互(线性×线性): ", n_M_inter, "\n")
-#   if (add_M_X_interactions) {
-#     cat("  - M_conti线性项 × X_conti线性项: ", n_M_X_lin_inter, "\n")
-#     cat("  - M_conti线性项 × X_conti二次项: ", n_M_X_sq_inter, "\n")
-#     cat("  - M_conti线性项 × X_binar: ", n_M_B_inter, "\n")
-#   }
-#   
-#   # 返回结果
-#   return(list(
-#     X_expanded = X_expanded,
-#     M_expanded = M_expanded,
-#     all_expanded = cbind(X_expanded, M_expanded)
-#   ))
-# }
 
 expand_covariates_with_mediation <- function(data, X_conti, X_binar, M_conti,
                                              add_conti_binar_interactions = FALSE,
@@ -1086,28 +817,12 @@ expand_covariates_with_mediation <- function(data, X_conti, X_binar, M_conti,
   ))
 }
 
-
 # Nonparametric implementations ported from jasa_sparse6.R.
 lasso_var_selection <- function(X, y, task = 0) {
-  # std_result <- standardize_data(X)
-  # X_scaled <- std_result$train
-  # if (task == 1) {  # 分类任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "binomial", alpha = 1)
-  # } else {          # 回归任务
-  #   fit <- cv.glmnet(x = X_scaled, y = y, family = "gaussian", alpha = 1)
-  # }
-  # beta <- coef(fit, s = "lambda.min")
-  # selected_vars <- rownames(beta)[which(abs(beta)>1e-6)][-1]
-  # if(length(selected_vars)==0){
-  # rf <- ranger(y ~ ., data = data.frame(X=X, y=y), importance = "impurity", num.trees=50)
-  # importance<-importance(rf)
-  # selected_vars <- names(importance)[importance > mean(importance)- sd(importance)]#
-  # # }
-  # if(length(selected_vars)==0){selected_vars=colnames(X)}
   selected_vars=colnames(X)  
   selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
   selected_vars <- gsub("^M\\.", "", selected_vars)
-  return(list(selected_vars = selected_vars))#, model = fit
+  return(list(selected_vars = selected_vars))
 }
 select_different_M_components_ks <- function(
     X, M, A,
@@ -1305,10 +1020,8 @@ multi_y_var_selection <- function(X, M) {
                  num.trees=100, num.threads=1)
     importance<-importance(rf)
     selected_vars <- names(importance)[importance > mean(importance)+sd(importance)]#
-    # if(length(selected_vars)==0){selected_vars=colnames(X)} else{
     selected_vars <- gsub("^X\\.", "", selected_vars)  # 去除前缀
     selected_vars <- gsub("^M\\.", "", selected_vars)
-    # }
     
     # 存储结果
     all_selected_vars[[y_names[i]]] <- selected_vars
@@ -1406,9 +1119,7 @@ fit_mv_rf_cf <- function(X_train, M_train, K = 3,
   )
   
   cv_loss <- matrix(NA_real_, nrow = nrow(tune_grid), ncol = K)
-  
-  
-  
+
   for (v in seq_len(K)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -1549,7 +1260,6 @@ dmvnorm_eigen_log <- function(x, sigma) {
 
   as.numeric(out)
 }
-
 
 stabilize_cov_eigen <- function(sigma) {
   sigma <- as.matrix(sigma)
@@ -1910,7 +1620,6 @@ normalized_truncate_q <- function(
   q_out
 }
 
-
 normalized_truncate_q_logstable <- function(
     log_q,
     ref_log_q,
@@ -2011,8 +1720,6 @@ make_stratified_fold_id <- function(A, K = 3, seed = 123) {
   
   fold_id
 }     
-
-
 
 # The EL density-ratio learner uses the supplied mediator-basis columns.
 el_drm_raw_q <- function(M) {
@@ -2575,15 +2282,7 @@ el_drm_fit_density_ratio <- function(
     n_fit <- nrow(x_fit)
     x_dim_fit <- ncol(x_fit)
     q_dim_fit <- ncol(q_fit)
-    
-    # # Do not penalize intercept-related coefficients
-    # penalty_mask <- rep(1, 2 * x_dim_fit * q_dim_fit)
-    
-    # intercept_idx0 <- 1 + (0:(q_dim_fit - 1)) * x_dim_fit
-    # intercept_idx1 <- x_dim_fit * q_dim_fit + intercept_idx0
-    
-    # penalty_mask[c(intercept_idx0, intercept_idx1)] <- 0
-    
+
     if (is.null(eta_fit)) {
       eta_fit <- 1 / max(q_dim_fit + ridge_lambda, 1)
     }
@@ -2599,7 +2298,6 @@ el_drm_fit_density_ratio <- function(
       }
       if (is.null(prof) || !is.finite(prof$loss)) return(Inf)
       prof$loss / n_fit + 0.5 * ridge_lambda * sum(theta^2)
-      # prof$loss / n_fit + 0.5 * ridge_lambda * sum((penalty_mask * theta)^2)
     }
     
     prof_cur <- el_drm_approx_loss_grad(theta_cur, x_fit, q_fit, A_fit, p_fit)
@@ -2692,7 +2390,6 @@ el_drm_fit_density_ratio <- function(
       objective = objective(theta_cur, prof_final),
       loss = prof_final$loss / n_fit,
       ridge_lambda = ridge_lambda,
-      # eta = eta_fit
       eta = eta_cur  
     )
   }
@@ -2710,8 +2407,7 @@ el_drm_fit_density_ratio <- function(
     nrow = length(ridge_grid),
     ncol = K_inner
   )
-  
-  
+
   for (v in seq_len(K_inner)) {
     idx_val <- which(fold_id == v)
     idx_fit <- which(fold_id != v)
@@ -2785,8 +2481,7 @@ el_drm_fit_density_ratio <- function(
   mean_cv_loss[!is.finite(mean_cv_loss)] <- Inf
   best_idx <- which.min(mean_cv_loss)
   best_ridge <- ridge_grid[best_idx]
-  
-  
+
   # ---------------- refit on all outer-training data ----------------
   x_design <- el_drm_design(train_X)
   q_transform <- el_drm_q_transform(
@@ -2866,7 +2561,6 @@ predict_caret_regression_final <- function(fit, newdata) {
   }
 }
 
-
 # Compatibility with the ACTG175 endpoint regressions.
 var_selection <- lasso_var_selection
 
@@ -2879,7 +2573,7 @@ df <- df0[df0$offtrt == 0 & df0$r == 1, ]
 # oprior: only 23 1;  zprior: always 1;  
 useless <- c("pidnum", "offtrt", "r", "days", "cens", "oprior", "zprior")
 X_maybe <- c("z30", "strat")
-X_conti <- c( c("age", "wtkg", "karnof", "cd40", "cd80"))#, c("preanti")
+X_conti <- c( c("age", "wtkg", "karnof", "cd40", "cd80"))
 X_binar <- c( c("hemo", "homo", "drugs", "race", "gender", "str2", "symptom") )
 X_vars <- c(X_conti, X_binar)
 
@@ -2890,18 +2584,13 @@ M_vars <- c("cd420", "cd820")
 Y_vars <- c("cd496")
 
 df=df[df$arms!=3,]
-A_all=df$treat #0: 单药; 1: 联合治疗
+A_all=df$treat
 
 X_all <- df[,c(X_conti,X_binar)]  
 M_all <- log(df[,M_vars])
-# colnames(M_all) <- c("M1","M2")
 Y_all <- log(df[,Y_vars])
 
 S_all <- cbind(X_all,M_all)
-
-# X_expanded <- expand_covariates(df, X_conti, X_binar)
-# X_expanded <- expand_covariates_ck(df, X_conti, X_binar)
-# S_expanded <- cbind(X_expanded, M_all)
 
 result <- expand_covariates_with_mediation(
   data = df,
@@ -2938,7 +2627,6 @@ N_all=length(Y_all);sw1=1;sw2=1
 n_mc=50L
 basis_stability_reps=5L
 Kmb=5;
-# N=floor(N_all/Kmb)*Kmb
 N=floor(N_all/Kmb)*Kmb
 current_time <- format(Sys.time(), "%Y%m%d_%H_%M")
 seed=2026;limit=rerun_workers;tmax=100
@@ -2966,10 +2654,6 @@ ctrl_pi=trainControl(method="cv", number=5, summaryFunction=twoClassSummary, cla
 ctrl_mu=trainControl(method="cv", number=5, summaryFunction=defaultSummary,classProbs=FALSE,
                      savePredictions=FALSE, allowParallel=FALSE)
 
-
-# ctrl_pi <- trainControl(method = "oob", classProbs=TRUE)
-# ctrl_mu <- trainControl(method = "oob")  # 回归任务只需这个
-
 #--------------For record---------------------
 cat("Session information:\n",paste(capture.output(sessionInfo()),collapse="\n"),"\n",file=archive_log_file,append=TRUE)
 log_dir <- dirname(archive_log_file)
@@ -2981,7 +2665,6 @@ log_appender(appender_file(log_file))
 log_formatter(formatter_paste)
 log_threshold(INFO)  # 设置日志级别为 INFO
 log_info("Logger initialized and ready to record logs.")
-
 
 #------preparation--------------------------
 num_mu_est=10;num_pi_est=10;num_q_est=10;num_p_est=6;num_totest=num_pi_est
@@ -3002,7 +2685,6 @@ cat("Log file: ",log_file,"\n",sep="")
 cat("Workers ready: ",registered_workers,"\nLog file: ",log_file,"\n",sep="",file=log_file,append=TRUE)
 replication_ids <- rerun_replication_ids
 results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "MASS", "matrixStats","glmnet","RCAL", "mvtnorm", "caret", "densratio","randomForestSRC","butcher","logger","filelock","survival", "dplyr","tidyr","purrr","ks","corpcor")) %dorng% {
-  # for (t in 1:tmax){
   set.seed(seed+t)
   
   index_out=(t-1)*N+1:N
@@ -3074,10 +2756,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_a=c(sel.rho_pi_a,fit_Log1_1$sel.rho[sw2]/sqrt(log(d1_poly)/length(index_nk)))
     alpha_a=fit_Log1_1$sel.bet[,sw2]
     pred_pi_a[2,index]=pmax(pmin(plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]),1),0) #pi_a(X)
-    # if(max(pred_pi_a[2,index])>0.95 || min(pred_pi_a[2,index])<0.05){
-    #   alpha_a=fit_Log1_1$sel.bet[,2]
-    #   pred_pi_a[2,index]=pmax(pmin(plogis(alpha_a[1]+X_poly[index,]%*%alpha_a[-1]),1),0)
-    # }
 
     #pi_b
     rho.range0=sqrt(log(d1_poly)/length(index_nk))*rho.range0b_default
@@ -3093,11 +2771,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     alpha_b=fit_Log1_1$sel.bet[,sw2]
     alpha_b[1]=-alpha_b[1]
     pred_pi_b[2,index]=pmax(pmin(plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]),1),0) #pi_b(X)
-    # if(max(pred_pi_b[2,index])>0.95 || min(pred_pi_b[2,index])<0.05){
-    #   alpha_b=fit_Log1_1$sel.bet[,2]
-    #   alpha_b[1]=-alpha_b[1]
-    #   pred_pi_b[2,index]=pmax(pmin(plogis(alpha_b[1]+X_poly[index,]%*%alpha_b[-1]),1),0)
-    # }
 
     #q
     S_index2=S_poly[index_nk,]
@@ -3117,11 +2790,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     beta_q=fit_Log2_1$sel.bet[,sw2]
     beta_q[1]=-beta_q[1]
     pred_q[2,index]=exp(beta_q[1]+S_poly[index,col_variances > .Machine$double.eps, drop = FALSE]%*%beta_q[-1])  #q(S)
-    # if(max(pred_q[2,index])>20 || min(pred_q[2,index])<0.05){
-    #   beta_q=fit_Log2_1$sel.bet[,2]
-    #   beta_q[1]=-beta_q[1]
-    #   pred_q[2,index]=exp(beta_q[1]+S_poly[index,col_variances > .Machine$double.eps, drop = FALSE]%*%beta_q[-1])
-    # }
 
     #mu
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk,],y=Y[index_nk],weights=A[index_nk]*exp(beta_q[1]+S_poly[index_nk,col_variances > .Machine$double.eps, drop = FALSE]%*%beta_q[-1])*(1+exp(-alpha_a[1]-X_poly[index_nk,]%*%alpha_a[-1])),nfolds=10, family="gaussian",alpha=1,standardize=FALSE,parallel=FALSE)
@@ -3130,7 +2798,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
 
     #tau1
     pred_mu_new1=as.numeric(predict(fit_lasso_mu,newx=S_poly[index_nk,,drop=FALSE],s="lambda.min"))
-    #pred_mu_new1=predict(fit_lasso_mu,newx=S_poly[index_nk,],s="lambda.min")
     tau1_constant_response <- sd(pred_mu_new1)<=1e-5
     tau1_training_mean <- mean(pred_mu_new1)
     if (tau1_constant_response){pred_tau1[2,index]=rep(tau1_training_mean,length(index));lambda_tau1=c(lambda_tau1,-1)} else{
@@ -3179,7 +2846,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     #pi using Random forest
     lasso_pi <- lasso_var_selection(X[index_nk,],A[index_nk],task=1)
     selected_vars_pi <- lasso_pi$selected_vars
-    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="impurity", num.trees=generate_num_tree(length(index_nk)))#,class.weights = c("Control" = 0.5, "Treatment" = 0.5)
+    pi_rf=caret::train(x=X[index_nk,selected_vars_pi,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_pi),1), metric="ROC", importance="impurity", num.trees=generate_num_tree(length(index_nk)))
     prediction_pi=predict(pi_rf$finalModel, data=X[index,selected_vars_pi,drop=FALSE])
     pred_pi_a[3,index]=pmax(pmin(prediction_pi$predictions[,2], 0.99), 0.01)
     pred_pi_b[3,index]=pred_pi_a[3,index]
@@ -3417,8 +3084,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
       log_q = log_ratio_index,
       ref_log_q = ref_log_q_sdr2_full
     )
-    # pred_q[4,index]=exp(pmax(pmin(log_ratio_index, log(100)), log(0.01)))
-    # pred_q[4,index]=exp(log_ratio_index)
     log_info(paste(
       "QR2 fold", k,
       "ridge_lambda =", f_el_drm$ridge_lambda,
@@ -3435,7 +3100,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_mu[4,index]=predict(mu_rf$finalModel, data=S[index,,drop=FALSE][,selected_vars_mu,drop=FALSE])$predictions
     mtry_mu=c(mtry_mu,mu_rf$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf$bestTune$min.node.size)
-    # summary(pred_mu[3,index]-mu[index])
 
     #tau1
     prediction_mu_1=predict(mu_rf$finalModel, data=S[index_nk_A0,,drop=FALSE][,selected_vars_mu,drop=FALSE])
@@ -3445,7 +3109,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau1[4,index]=predict(tau1_rf$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
     mtry_tau1=c(mtry_tau1,tau1_rf$bestTune$mtry)
     minsize_tau1=c(minsize_tau1,tau1_rf$bestTune$min.node.size)
-    # summary(pred_tau1[3,index])
 
     #tau
     prediction_q_1 <- normalized_truncate_q(
@@ -3465,8 +3128,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_tau[4,index]=predict(tau_rf$finalModel, data=X[index,selected_vars_tau,drop=FALSE])$predictions
     mtry_tau=c(mtry_tau,tau_rf$bestTune$mtry)
     minsize_tau=c(minsize_tau,tau_rf$bestTune$min.node.size)
-    # pi_rf=butcher(pi_rf); rm(pi_rf,prediction_pi);p_rf=butcher(p_rf); rm(p_rf);rm(prediction_pi_1,prediction_p_1);
-    #q1_crulsif=butcher(q1_crulsif);q2_crulsif=butcher(q2_crulsif);rm(q1_crulsif,q2_crulsif);rm(prediction_q_1)
     mu_rf=butcher(mu_rf);tau1_rf=butcher(tau1_rf);tau_rf=butcher(tau_rf); rm(mu_rf,tau1_rf,tau_rf,prediction_mu_1,prediction_mu_2_preds,prediction_tau1_1)
     gc()
   }
@@ -3474,7 +3135,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
   unlock(lock_obj)
   log_info(sprintf("Replication %03d/%03d | QR2 | complete",t,tmax))
   set.seed(seed+t)
-
 
   #--------------O-TR'---------------
   # MTR is exported as O-TR prime, matching the manuscript.
@@ -3486,7 +3146,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     index_nk2=index_nk[-(1:floor(length(index_nk)/2))]
 
     #pi
-    # sel.rho_pi_a=c()
     rho.range0=sqrt(log(d1_poly)/length(index_nk))*rho.range0_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -3500,16 +3159,11 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_pi_b=c(sel.rho_pi_b,fit_Log1_1$sel.rho[sw2]/sqrt(log(d1_poly)/length(index_nk)))
     alpha_a_miles=fit_Log1_1$sel.bet[,sw2]
     pred_pi_a[5,index]=pmax(pmin(plogis(alpha_a_miles[1]+X_poly[index,]%*%alpha_a_miles[-1]),1),0) #pi_a(X)
-    # if((max(pred_pi_a[5,index])>0.95) || (min(pred_pi_a[5,index])<0.05) ){
-    #   alpha_a_miles=fit_Log1_1$sel.bet[,2]
-    #   pred_pi_a[5,index]=pmax(pmin(plogis(alpha_a_miles[1]+X_poly[index,]%*%alpha_a_miles[-1]),1),0)
-    # }
     pred_pi_b[5,index]=pred_pi_a[5,index]
     pred_pi_a[8,index]=pred_pi_a[5,index]
     pred_pi_b[8,index]=pred_pi_a[5,index]
 
     #p
-    # sel.rho_p=c()
     rho.range0=sqrt(log(d3_poly)/length(index_nk))*rho.range1_default
     boolFalse=FALSE #repeat until no errors occur
     while(boolFalse==FALSE){
@@ -3522,16 +3176,11 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     sel.rho_p=c(sel.rho_p,fit_Log1_1$sel.rho[sw2]/sqrt(log(d3_poly)/length(index_nk)))
     alpha_p=fit_Log1_1$sel.bet[,sw2]
     pred_p[3,index]=pmax(pmin(plogis(alpha_p[1]+S_poly[index,]%*%alpha_p[-1]),1),0) #pi_a(X)
-    # if((max(pred_p[3,index])>0.95) || (min(pred_p[3,index])<0.05) ){
-    #   alpha_p=fit_Log1_1$sel.bet[,2]
-    #   pred_p[3,index]=pmax(pmin(plogis(alpha_p[1]+S_poly[index,]%*%alpha_p[-1]),1),0)
-    # }
     pred_q[5,index]=(1-pred_p[3,index])/pred_p[3,index]*pred_pi_a[5,index]/(1-pred_pi_a[5,index])
     pred_p[5,index]=pred_p[3,index]
     pred_q[8,index]=pred_q[5,index]
 
     #mu-1
-    # lambda_mu=c()
     fit_lasso_mu=cv.glmnet(x=S_poly[index_nk1[A[index_nk1]==1],],y=Y[index_nk1[A[index_nk1]==1]],family="gaussian",alpha=1,standardize=FALSE)
     pred_mu[5,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min",standardize=FALSE,parallel=FALSE)
     lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d3_poly)/length(index_nk1)))
@@ -3562,40 +3211,7 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
 
     }
 
-   #  #mu-2
-   #  # lambda_mu=c()
-   # fit_lasso_mu=cv.glmnet(x=S_poly[index_nk[A[index_nk]==1],],y=Y[index_nk[A[index_nk]==1]],family="gaussian",alpha=1,standardize=FALSE,nfolds=10)
-   #  pred_mu[8,index]=predict(fit_lasso_mu,newx=S_poly[index,],s="lambda.min",standardize=FALSE,parallel=FALSE)
-   #  lambda_mu=c(lambda_mu,fit_lasso_mu$lambda.min/sqrt(log(d3_poly)/length(index_nk)))
    #
-   #  #tau1-2
-   #  pred_mu_new1_miles=predict(fit_lasso_mu,newx=S_poly[index_nk[A[index_nk]==0],],s="lambda.min",standardize=FALSE)
-   #  if (sd(pred_mu_new1_miles)<=1e-5){pred_tau1[8,index]=rep(mean(pred_mu_new1_miles),length(index));lambda_tau1=c(lambda_tau1,0)} else{
-   #    fit_lasso_tau1 = tryCatch({
-   #      fit = cv.glmnet(
-   #        x = X_poly[index_nk[A[index_nk]==0],],
-   #        y = pred_mu_new1_miles,
-   #        family = "gaussian",
-   #        alpha = 1,
-   #        standardize = FALSE,parallel=FALSE,nfolds=10
-   #      )
-   #      list(fit = fit, error = NULL)
-   #    }, error = function(e) {
-   #      list(fit = NULL, error = e)
-   #    })
-   #    if (!is.null(fit_lasso_tau1$error)) {
-   #      pred_tau1[8, index]=#X_poly[index, ] %*% alpha_mu_X +
-   #        rep(mean(pred_mu_new1_miles), length(index))
-   #      lambda_tau1 = c(lambda_tau1, -1)
-   #    } else {
-   #      pred_tau1[8, index] = #X_poly[index, ] %*% alpha_mu_X +
-   #        predict(fit_lasso_tau1$fit, newx = X_poly[index, ], s = "lambda.min",standardize=FALSE)
-   #      lambda_tau1 = c(lambda_tau1, fit_lasso_tau1$fit$lambda.min / sqrt(log(d1_poly)/length(index_nk)))
-   #    }
-   #    #fit_lasso_tau1=cv.glmnet(x=X_poly[index_nk[A[index_nk]==0],],y=pred_mu_new1_miles,family="gaussian",alpha=1,standardize=FALSE)
-   #    #pred_tau1[8,index]=predict(fit_lasso_tau1,newx=X_poly[index,],s="lambda.min",standardize=FALSE)
-   #    #lambda_tau1=c(lambda_tau1,fit_lasso_tau1$lambda.min/sqrt(log(d1_poly)/length(index_nk)))
-   #  }
 
   }
   lock_obj=lock(log_file, timeout=5)
@@ -3625,21 +3241,12 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     pred_pi_b[6,index]=pred_pi_a[6,index]
     pred_pi_a[7,index]=pred_pi_a[6,index]
     pred_pi_b[7,index]=pred_pi_a[6,index]
-#     pred_pi_a[9,index]=pred_pi_a[6,index]
-#     pred_pi_b[9,index]=pred_pi_a[6,index]
     mtry_pi=c(mtry_pi,pi_rf_TR$bestTune$mtry)
     minsize_pi=c(minsize_pi,pi_rf_TR$bestTune$min.node.size)
     pi_rf_TR=butcher(pi_rf_TR);rm(pi_rf_TR,prediction_pi_TR);gc()
 
-    #p using Random forest-O-TR
     lasso_p <- lasso_var_selection(cbind(X[index_nk,],M[index_nk,]),A[index_nk],task=1)
     selected_vars_p <- lasso_p$selected_vars
-    # selected_M=colnames(M)[select_different_M_components_ks(M[index_nk, ], A[index_nk])]
-    # selected_vars_p <- c(colnames(X[index_nk,]),selected_M)
-    # selected_A1=multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    # selected_A0=multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
-    # selected_vars_p <- unique(c(selected_A1,selected_A0,selected_M))
-    # p_rf_TR=caret::train(x=cbind(X[index_nk,],M[index_nk,])[,selected_vars_p,drop=FALSE], y=A_fac[index_nk], method= "ranger", trControl=ctrl_pi, tuneGrid=generate_tune_grid(length(index_nk),length(selected_vars_p),1), metric="ROC", importance="impurity", num.trees=generate_num_tree(length(index_nk)) )
 
       p_rf_TR = caret::train(
         x = cbind(X[index_nk,], M[index_nk,])[, selected_vars_p, drop = FALSE],
@@ -3654,8 +3261,6 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
 
     pred_p[4,index]=pmax(pmin(predict(p_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_p,drop=FALSE])$predictions[, 2],0.99),0.01)
     pred_q[7,index]=(1-pred_p[4,index])/pred_p[4,index]*pred_pi_a[7,index]/(1- pred_pi_a[7,index])
-#     pred_p[6,index]=pred_p[4,index]
-#     pred_q[9,index]=pred_q[7,index]
     mtry_p=c(mtry_p,p_rf_TR$bestTune$mtry)
     minsize_p=c(minsize_p,p_rf_TR$bestTune$min.node.size)
     p_rf_TR=butcher(p_rf_TR);rm(p_rf_TR)
@@ -3682,26 +3287,15 @@ results_par=foreach (t=replication_ids, .combine=rbind, .packages=c("ranger", "M
     selected_vars_mu<-lasso_mu$selected_vars
     mu_rf_TR=caret::train(x=cbind(X[index_nk_A,],M[index_nk_A,])[,selected_vars_mu,drop=FALSE], y=Y[index_nk_A], method= "ranger", trControl=ctrl_mu, importance="impurity", num.trees=generate_num_tree(length(index_nk_A)), tuneGrid=generate_tune_grid(length(index_nk_A),length(selected_vars_mu),0))
     pred_mu[6,index]=predict(mu_rf_TR$finalModel, data=cbind(X[index,],M[index,])[,selected_vars_mu,drop=FALSE])$predictions
-#     pred_mu[9,index]=pred_mu[6,index]
     mtry_mu=c(mtry_mu,mu_rf_TR$bestTune$mtry)
     minsize_mu=c(minsize_mu,mu_rf_TR$bestTune$min.node.size)
-    # summary(pred_mu[5,index]-mu[index])
-
-#     #tau1 for O-TR2
-#     prediction_mu_new1_TR=predict(mu_rf_TR$finalModel, data=cbind(X[index_nk_A0, ],M[index_nk_A0,])[,selected_vars_mu,drop=FALSE])
-#     lasso_tau1<-lasso_var_selection(X[index_nk_A0,], prediction_mu_new1_TR$predictions, task = 0)
-#     selected_vars_tau1<-lasso_tau1$selected_vars
-#     tau1_rf_TR=caret::train(x=as.matrix(X[index_nk_A0,selected_vars_tau1,drop=FALSE]), y=prediction_mu_new1_TR$predictions, method= "ranger", trControl=ctrl_mu, tuneGrid=generate_tune_grid(length(index_nk_A0),length(selected_vars_tau1),0), importance="impurity", num.trees=generate_num_tree(length(index_nk_A0)) )
-#     pred_tau1[9,index]=predict(tau1_rf_TR$finalModel, data=X[index,selected_vars_tau1,drop=FALSE])$predictions
-#     mtry_tau1=c(mtry_tau1,tau1_rf_TR$bestTune$mtry)
-#     minsize_tau1=c(minsize_tau1,tau1_rf_TR$bestTune$min.node.size)
 
     # Gaussian F0 for tau1 only; q uses the separate legacy KNN module.
     selected_M <- 1:ncol(M)
     ds=length(selected_M)
     x_vars <- multi_y_var_selection(X[index_nk, ], M[index_nk, selected_M, drop = FALSE])$union_vars
-    selected_A1=x_vars#multi_y_var_selection(X[index_nk_A,], M[index_nk_A, selected_M])$union_vars
-    selected_A0=x_vars#multi_y_var_selection(X[index_nk_A0,], M[index_nk_A0, selected_M])$union_vars
+    selected_A1=x_vars
+    selected_A0=x_vars
 
     # A=0: independently tune mtry and nodesize
     rf_mean_A0 <- fit_mv_rf_cf(

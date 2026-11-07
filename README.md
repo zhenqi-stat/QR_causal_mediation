@@ -11,7 +11,7 @@ Code and final computational results for *Quadruply robust methods for causal me
 | `simu_3.R` | Setting (iii), correctly specified parametric models | Supplement Table 7 | `N = 600, 1000, 1400, 1800` |
 | `simu_4.R` | Setting (iv), binary mediator | Supplement Table 8 | `N = 600, 1000, 1400, 1800` |
 | `simu_5.R` | Setting (v), varying nonlinear signal | Supplement Table 9 | `signal = 0.25, 0.5, 1, 2`; `N = 1800` |
-| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 10 | `ell = 1, 2, 3, 4`; `N = 1800` |
+| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 10 | `ell = 1, 2, 3, 4` corresponds to `(s_pi, s_q, s_mu) = (4,12,12), (7,18,16), (13,30,22), (17,39,25)`, respectively; `N = 1800` |
 | `real.R` | ACTG175 analysis | Main Table 6 | 100 sample splits |
 
 `table_map.csv` lists the scripts, configurations, and corresponding tables.
@@ -41,7 +41,9 @@ Set the R working directory to this folder and run:
 source("install_packages.R")
 ```
 
-The required R packages are listed in `install_packages.R`. ACTG175 is distributed with `speff2trial` 1.0.5 at https://CRAN.R-project.org/package=speff2trial. The `data/` directory contains the source data, analysis sample, and variable dictionary. Run `Rscript prepare_data.R` to regenerate the analysis inputs. The real-data script loads the same source data from `speff2trial`. `DATA_DICTIONARY.md` documents the variables, participant selection, transformations, and result-file objects.
+The required R packages are listed in `install_packages.R`. For re-estimation, use the versions recorded in `package_versions.csv` where possible. Different package versions may change the re-estimated results.
+
+ACTG175 is distributed with `speff2trial` 1.0.5 at https://CRAN.R-project.org/package=speff2trial. The `data/` directory contains the source data, analysis sample, and variable dictionary. Run `Rscript prepare_data.R` to regenerate the analysis inputs. The real-data script loads the same source data from `speff2trial`. `DATA_DICTIONARY.md` documents the variables, participant selection, transformations, and result-file objects.
 
 ## Regenerate the numerical tables
 
@@ -122,6 +124,8 @@ AL is the median 95% confidence-interval length; AC is empirical coverage. Real-
 ## Structure and verification
 
 The seven analysis scripts are self-contained. `configurations/` supplies the corresponding DGP definitions for verification. `configuration_index.rds` lists configuration parameters; `source_manifest.csv` and result metadata identify the sources and replications. `tools/` contains execution and verification utilities. The bundled `results/` directory contains 24 simulation files with 100 replications and eight methods each, plus `real.RData` with 100 splits for six methods.
+
+Each simulation RData file contains replication-level estimates (`pred_theta`), influence-function variances (`pred_sig2`), the target (`theta`), and the final `bias`, `RMSE`, `AC`, and `AL`. `table_summary` collects the unrounded summaries by method; `manuscript_table` records their rounded manuscript values. The real-data file contains split-level estimates and variances, effect summaries, confidence intervals, and manuscript display values. These result files exclude tuning records and observation-level diagnostics.
 
 ```bash
 Rscript verify.R
