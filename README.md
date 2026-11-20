@@ -8,11 +8,11 @@ Code and final computational results for *Quadruply robust methods for causal me
 | --- | --- | --- | --- |
 | `simu_1.R` | Setting (i) | Main Table 4 | `N = 600, 1000, 1400, 1800` |
 | `simu_2.R` | Setting (ii) | Main Table 5 | `N = 600, 1000, 1400, 1800` |
-| `simu_3.R` | Setting (iii), correctly specified parametric models | Supplement Table 7 | `N = 600, 1000, 1400, 1800` |
-| `simu_4.R` | Setting (iv), binary mediator | Supplement Table 8 | `N = 600, 1000, 1400, 1800` |
-| `simu_5.R` | Setting (v), varying nonlinear signal | Supplement Table 9 | `signal = 0.25, 0.5, 1, 2`; `N = 1800` |
-| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 10 | `ell = 1, 2, 3, 4` corresponds to `(s_pi, s_q, s_mu) = (4,12,12), (7,18,16), (13,30,22), (17,39,25)`, respectively; `N = 1800` |
-| `simu_7.R` | Setting (vii), correctly specified mean regressions and misspecified weights | Supplement Table 11 | `N = 1000, 1800, 2500, 5000` |
+| `simu_3.R` | Setting (iii), correctly specified parametric models | Supplement Table 8 | `N = 600, 1000, 1400, 1800` |
+| `simu_4.R` | Setting (iv), binary mediator | Supplement Table 9 | `N = 600, 1000, 1400, 1800` |
+| `simu_5.R` | Setting (v), varying nonlinear signal | Supplement Table 10 | `signal = 0.25, 0.5, 1, 2`; `N = 1800` |
+| `simu_6.R` | Setting (vi), varying sparsity | Supplement Table 11 | `ell = 1, 2, 3, 4` corresponds to `(s_pi, s_q, s_mu) = (4,12,12), (7,18,16), (13,30,22), (17,39,25)`, respectively; `N = 1800` |
+| `simu_7.R` | Setting (vii), correctly specified mean regressions and misspecified weights | Supplement Table 12 | `N = 1000, 1800, 2500, 5000` |
 | `real.R` | ACTG175 analysis | Main Table 6 | 100 sample splits |
 
 `table_map.csv` lists the scripts, configurations, and corresponding tables.

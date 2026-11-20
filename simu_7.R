@@ -8,7 +8,7 @@ cv_glmnet <- function(...) {
 }
 
 # Simulation7: correctly specified mean regressions and misspecified weights.
-# Setting(vii), Supplement Table11. d1=100 excludes the intercept in the code.
+# Setting(vii), Supplement Table 12. d1=100 excludes the intercept in the code.
 # Edit the settings below. The target always uses the complete100-replication pool.
 N <- c(1000L, 1800L, 2500L, 5000L)
 replication_ids <- 1:100

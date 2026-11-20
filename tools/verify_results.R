@@ -77,6 +77,17 @@ recompute_real_results <- function(record) {
 # Check the bundled final tables without fitting any nuisance model.
 verify_archive_results <- function(archive_root) {
   archive_root <- normalizePath(archive_root, mustWork = TRUE)
+  # Match the current manuscript numbering; Supplement Table 7 is theoretical.
+  table_map <- read.csv(file.path(archive_root, "table_map.csv"), stringsAsFactors = FALSE)
+  expected_tables <- c("simu_1.R" = 4L, "simu_2.R" = 5L, "simu_3.R" = 8L,
+    "simu_4.R" = 9L, "simu_5.R" = 10L, "simu_6.R" = 11L,
+    "simu_7.R" = 12L, "real.R" = 6L)
+  stopifnot(nrow(table_map) == length(expected_tables), !anyDuplicated(table_map$entrypoint),
+            setequal(table_map$entrypoint, names(expected_tables)))
+  table_map <- table_map[match(names(expected_tables), table_map$entrypoint), , drop = FALSE]
+  stopifnot(identical(as.integer(table_map$table), unname(expected_tables)),
+    identical(table_map$document, c("Main", "Main", rep("Supplement", 5L), "Main")),
+    identical(table_map$setting, c("i", "ii", "iii", "iv", "v", "vi", "vii", "ACTG175")))
   directory <- file.path(archive_root, "results")
   cases <- readRDS(file.path(archive_root, "configuration_index.rds"))$cases
   expected_files <- c(paste0(names(cases), ".RData"), "real.RData")

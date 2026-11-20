@@ -1,4 +1,4 @@
-# Regenerate the seven numerical tables from the bundled replication-level results.
+# Regenerate the eight numerical tables from the bundled replication-level results.
 # This script uses base R only and does not fit nuisance models.
 .table_root <- function() {
   paths <- vapply(sys.frames(), function(x) {
