@@ -1,0 +1,51 @@
+ACTG175: TR and O-TR rerun with conditional KDE integration for TR tau_n.
+Source file: Result_real_TR_KDE.RData
+Source MD5: afd46773b1a781a0ed5194f5f994ed28
+Standalone rerun script MD5: 226b5b711aa4751afba5c01d0e74b2b4
+Workers: 50
+
+R version 4.4.2 (2024-10-31)
+Platform: x86_64-conda-linux-gnu
+Running under: CentOS Linux 7 (Core)
+
+Matrix products: default
+BLAS/LAPACK: /public/software/VersionHub/R/4.4.2/miniconda3/envs/r_4.4.2_base/lib/libopenblasp-r0.3.29.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Asia/Shanghai
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+ [1] future_1.34.0        generics_0.1.3       butcher_0.3.5       
+ [4] class_7.3-23         stringi_1.8.7        lattice_0.22-6      
+ [7] pROC_1.18.5          listenv_0.9.1        digest_0.6.37       
+[10] magrittr_2.0.3       grid_4.4.2           timechange_0.3.0    
+[13] RColorBrewer_1.1-3   iterators_1.0.14     foreach_1.5.2       
+[16] plyr_1.8.9           Matrix_1.7-3         ModelMetrics_1.2.2.2
+[19] nnet_7.3-20          survival_3.8-3       purrr_1.0.4         
+[22] scales_1.4.0         codetools_0.2-20     lava_1.8.1          
+[25] cli_3.6.5            rlang_1.1.6          caret_7.0-1         
+[28] hardhat_1.4.1        parallelly_1.43.0    future.apply_1.11.3 
+[31] splines_4.4.2        withr_3.0.2          FNN_1.1.4.1         
+[34] prodlim_2024.06.25   tools_4.4.2          parallel_4.4.2      
+[37] reshape2_1.4.4       dplyr_1.1.4          recipes_1.2.1       
+[40] ggplot2_3.5.2        filelock_1.0.3       ranger_0.17.0       
+[43] globals_0.16.3       logger_0.4.0         vctrs_0.6.5         
+[46] R6_2.6.1             rpart_4.1.24         stats4_4.4.2        
+[49] lifecycle_1.0.4      lubridate_1.9.4      stringr_1.5.1       
+[52] MASS_7.3-65          pkgconfig_2.0.3      pillar_1.10.1       
+[55] gtable_0.3.6         glue_1.8.0           data.table_1.17.0   
+[58] Rcpp_1.0.14          tibble_3.2.1         tidyselect_1.2.1    
+[61] dichromat_2.0-0.1    farver_2.1.2         nlme_3.1-167        
+[64] ipred_0.9-15         timeDate_4041.110    gower_1.0.2         
+[67] compiler_4.4.2      

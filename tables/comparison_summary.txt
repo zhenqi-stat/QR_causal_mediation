@@ -1,0 +1,4 @@
+Result structure: PASS (29 complete files, 100 repetitions/splits each).
+Table cells matching at paper precision: 944/944.
+Numerical comparison: MATCH_AT_PAPER_PRECISION.
+comparison.csv lists every reference value, new value, difference, and printed value.

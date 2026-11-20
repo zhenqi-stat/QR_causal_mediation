@@ -1,0 +1,45 @@
+file,variable,type,description,unit_or_coding,role,transformation,missing_values
+ACTG175_raw.csv,pidnum,integer,patient's ID number,integer code,source identifier,none,0
+ACTG175_raw.csv,age,integer,age in years at baseline,years,baseline covariate,none,0
+ACTG175_raw.csv,wtkg,numeric,weight in kg at baseline,kg,baseline covariate,none,0
+ACTG175_raw.csv,hemo,integer,"hemophilia (0=no, 1=yes)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,homo,integer,"homosexual activity (0=no, 1=yes)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,drugs,integer,"history of intravenous drug use (0=no, 1=yes)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,karnof,integer,Karnofsky score (on a scale of 0-100),score 0-100,baseline covariate,none,0
+ACTG175_raw.csv,oprior,integer,"non-zidovudine antiretroviral therapy prior to initiation of study treatment (0=no, 1=yes)",integer code,not used in this analysis,none,0
+ACTG175_raw.csv,z30,integer,"zidovudine use in the 30 days prior to treatment initiation (0=no, 1=yes)",integer code,not used in this analysis,none,0
+ACTG175_raw.csv,zprior,integer,"zidovudine use prior to treatment initiation (0=no, 1=yes)",integer code,not used in this analysis,none,0
+ACTG175_raw.csv,preanti,integer,number of days of previously received antiretroviral therapy,days,not used in this analysis,none,0
+ACTG175_raw.csv,race,integer,"race (0=white, 1=non-white)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,gender,integer,"gender (0=female, 1=male)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,str2,integer,"antiretroviral history (0=naive, 1=experienced)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,strat,integer,"antiretroviral history stratification (1='antiretroviral naive', 2='> 1 but <= 52 weeks of prior antiretroviral therapy', 3='> 52 weeks')",integer code,not used in this analysis,none,0
+ACTG175_raw.csv,symptom,integer,"symptomatic indicator (0=asymptomatic, 1=symptomatic)",integer code,baseline covariate,none,0
+ACTG175_raw.csv,treat,integer,"treatment indicator (0=zidovudine only, 1=other therapies)",integer code,treatment,none,0
+ACTG175_raw.csv,offtrt,integer,"indicator of off-treatment before 96+/-5 weeks (0=no,1=yes)",integer code,sample selection,none,0
+ACTG175_raw.csv,cd40,integer,CD4 T cell count at baseline,cells/mm^3,baseline covariate,none,0
+ACTG175_raw.csv,cd420,integer,CD4 T cell count at 20+/-5 weeks,cells/mm^3,mediator,none,0
+ACTG175_raw.csv,cd496,integer,CD4 T cell count at 96+/-5 weeks (=NA if missing),cells/mm^3,outcome,none,797
+ACTG175_raw.csv,r,integer,"missing CD4 T cell count at 96+/-5 weeks (0=missing, 1=observed)",integer code,sample selection,none,0
+ACTG175_raw.csv,cd80,integer,CD8 T cell count at baseline,cells/mm^3,baseline covariate,none,0
+ACTG175_raw.csv,cd820,integer,CD8 T cell count at 20+/-5 weeks,cells/mm^3,mediator,none,0
+ACTG175_raw.csv,cens,integer,indicator of observing the event in days,integer code,not used in this analysis,none,0
+ACTG175_raw.csv,days,integer,"number of days until the first occurrence of: (i) a decline in CD4 T cell count of at least 50%, (ii) an event indicating progression to AIDS, or (iii) death.",days,not used in this analysis,none,0
+ACTG175_raw.csv,arms,integer,"treatment arm (0=zidovudine, 1=zidovudine and didanosine, 2=zidovudine and zalcitabine, 3=didanosine).",integer code,sample selection,none,0
+ACTG175_analysis.csv,source_row,integer,One-based row number in ACTG175_raw.csv,one-based index,row identifier,none,0
+ACTG175_analysis.csv,A,integer,"treatment indicator (0=zidovudine only, 1=other therapies)",same as source variable,treatment,treat,0
+ACTG175_analysis.csv,age,integer,age in years at baseline,same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,wtkg,numeric,weight in kg at baseline,same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,karnof,integer,Karnofsky score (on a scale of 0-100),same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,cd40,integer,CD4 T cell count at baseline,same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,cd80,integer,CD8 T cell count at baseline,same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,hemo,integer,"hemophilia (0=no, 1=yes)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,homo,integer,"homosexual activity (0=no, 1=yes)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,drugs,integer,"history of intravenous drug use (0=no, 1=yes)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,race,integer,"race (0=white, 1=non-white)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,gender,integer,"gender (0=female, 1=male)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,str2,integer,"antiretroviral history (0=naive, 1=experienced)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,symptom,integer,"symptomatic indicator (0=asymptomatic, 1=symptomatic)",same as source variable,baseline covariate,none,0
+ACTG175_analysis.csv,M1,numeric,CD4 T cell count at 20+/-5 weeks,natural-log count,mediator,log(cd420),0
+ACTG175_analysis.csv,M2,numeric,CD8 T cell count at 20+/-5 weeks,natural-log count,mediator,log(cd820),0
+ACTG175_analysis.csv,Y,numeric,CD4 T cell count at 96+/-5 weeks (=NA if missing),natural-log count,outcome,log(cd496),0
