@@ -136,6 +136,8 @@ AL is the median 95% confidence-interval length; AC is empirical coverage. Real-
 
 The eight analysis scripts are self-contained. `configurations/` supplies the corresponding DGP definitions for verification. `configuration_index.rds` lists configuration parameters; `source_manifest.csv` and result metadata identify the sources and replications. `tools/` contains execution and verification utilities. The bundled `results/` directory contains 28 simulation files with 100 replications and eight methods each, plus `real.RData` with 100 splits for five methods.
 
+`provenance/simulation_source_mapping.csv` records the source of every simulation estimate. `provenance/source_selection.csv` lists the method-specific source files and replication ranges for all simulations and the real-data analysis.
+
 Each simulation RData file contains replication-level estimates (`pred_theta`), influence-function variances (`pred_sig2`), the target (`theta`), and the final `bias`, `RMSE`, `AC`, and `AL`. `table_summary` collects the unrounded summaries by method; `manuscript_table` records their rounded manuscript values. The real-data file contains split-level estimates and variances, effect summaries, confidence intervals, and manuscript display values. These result files exclude tuning records and observation-level diagnostics.
 
 ```bash

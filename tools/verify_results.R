@@ -219,13 +219,72 @@ verify_archive_results <- function(archive_root) {
   # QR1 has historical method column 5, but local source column 1 in its saved file.
   selection <- read.csv(file.path(archive_root, "provenance", "source_selection.csv"),
                         stringsAsFactors = FALSE, check.names = FALSE)
+  map_fields <- c("configuration", "replication_id", "method", "source_file",
+                  "source_md5", "source_row", "source_column")
+  order_map <- function(x) {
+    x <- x[order(x$configuration, x$method, x$replication_id), map_fields, drop = FALSE]
+    rownames(x) <- NULL
+    x
+  }
+  expected_map <- do.call(rbind, lapply(names(cases), function(id) {
+    cbind(configuration = id, loaded(paste0(id, ".RData"))$source_map)
+  }))
+  public_map <- read.csv(file.path(archive_root, "provenance", "simulation_source_mapping.csv"),
+                         stringsAsFactors = FALSE)
+  stopifnot(nrow(public_map) == length(cases) * 800L,
+            identical(order_map(public_map), order_map(expected_map)))
+  real_map <- do.call(rbind, lapply(seq_len(nrow(real$source_recipe)), function(i) {
+    row <- real$source_recipe[i, ]
+    data.frame(configuration = "real", replication_id = 1:100, method = row$method,
+      source_file = row$source_file, source_md5 = row$source_md5,
+      source_row = seq.int(row$source_row_start, row$source_row_end),
+      source_column = row$source_column, stringsAsFactors = FALSE)
+  }))
+  expanded <- do.call(rbind, lapply(seq_len(nrow(selection)), function(i) {
+    row <- selection[i, ]
+    ids <- seq.int(row$replication_id_start, row$replication_id_end)
+    source_rows <- seq.int(row$source_row_start, row$source_row_end)
+    stopifnot(length(ids) == length(source_rows), all(ids %in% 1:100))
+    data.frame(configuration = row$configuration, replication_id = ids, method = row$method,
+      source_file = row$source_file, source_md5 = row$source_md5,
+      source_row = source_rows, source_column = row$source_local_column,
+      stringsAsFactors = FALSE)
+  }))
+  stopifnot(setequal(selection$configuration, c(names(cases), "real")),
+    all(selection$source_file == basename(selection$source_file)),
+    !anyDuplicated(paste(expanded$configuration, expanded$method, expanded$replication_id)),
+    identical(order_map(expanded), order_map(rbind(expected_map, real_map))))
+  runtime <- read.csv(file.path(archive_root, "runtime_batches.csv"), stringsAsFactors = FALSE)
+  runtime_key <- function(configuration, file, md5) paste(configuration, file, md5, sep = "|")
+  expected_runtime <- unique(rbind(expected_map, real_map)[,
+    c("configuration", "source_file", "source_md5"), drop = FALSE])
+  expected_runtime_key <- with(expected_runtime, runtime_key(configuration, source_file, source_md5))
+  actual_runtime_key <- with(runtime, runtime_key(configuration, source_result, source_md5))
+  stopifnot(!anyDuplicated(actual_runtime_key), setequal(actual_runtime_key, expected_runtime_key),
+    all(runtime$source_result == basename(runtime$source_result)),
+    all(runtime$log_file == basename(runtime$log_file)),
+    all(is.na(runtime$elapsed_hours) | runtime$elapsed_hours >= 0),
+    all(is.na(runtime$snapshot_elapsed_hours) | runtime$snapshot_elapsed_hours >= 0),
+    all(is.na(runtime$workers_recorded) | runtime$workers_recorded >= 1),
+    all(is.na(runtime$elapsed_hours[runtime$status != "matched"])),
+    all(nzchar(runtime$log_file[runtime$status == "matched"])),
+    all(grepl("^[0-9a-f]{32}$", runtime$log_md5[runtime$status == "matched"])))
+  for (i in seq_len(nrow(runtime))) {
+    row <- runtime[i, ]
+    selected <- selection[selection$configuration == row$configuration &
+      selection$source_file == row$source_result & selection$source_md5 == row$source_md5, , drop = FALSE]
+    stopifnot(setequal(strsplit(row$used_methods, "; ", fixed = TRUE)[[1L]], selected$method))
+  }
+  # Retain the additional exact-value author-side audits for historical reruns.
+  # Every method and batch is checked against the complete public maps above.
+  selection <- selection[selection$author_audit_available, , drop = FALSE]
   required_qscale_cases <- paste0("simu_4_N", c(600L, 1000L, 1400L, 1800L))
   allowed_qscale_cases <- c(required_qscale_cases, paste0("simu_6_", c(1L, 3L, 5L, 6L)))
   qscale_algorithm <- "TR/O-TR only; q-scale type-7 truncation; outer-training A=1 reference"
   qscale_cases <- unique(selection$configuration[selection$source_algorithm == qscale_algorithm])
   stopifnot(all(required_qscale_cases %in% qscale_cases), all(qscale_cases %in% allowed_qscale_cases),
             length(qscale_cases) >= 4L, length(qscale_cases) <= 8L,
-            nrow(selection) == 77L + 2L * length(qscale_cases),
+            nrow(selection) == 3L * length(legacy_cases) + 5L + 2L * length(qscale_cases),
             setequal(selection$configuration, c(names(legacy_cases), "real")),
             !anyDuplicated(paste(selection$configuration, selection$method)),
             all(selection$source_file == basename(selection$source_file)),

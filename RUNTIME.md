@@ -1,6 +1,8 @@
 # Recorded runtimes
 
-The original simulation runs used 30 worker processes. Approximate runtimes in hours are summarized from the original logs. Method and replication coverage are recorded in `runtime_batches.csv`.
+The simulation entrypoints default to 30 worker processes. `runtime_batches.csv` lists all 135 source batches contributing to the final results across seven simulation settings and the ACTG175 analysis. Each row records the source filename and MD5, retained methods and replications, and available timing and worker information.
+
+`elapsed_hours` is measured from matched run logs. `snapshot_elapsed_hours` is the interval from a recorded run-start timestamp to the saved result snapshot. Times are rounded to tenths of an hour; `NA` denotes an unrecorded measurement.
 
 ## Core estimation smoke test
 
@@ -20,7 +22,7 @@ Results are saved under `output/smoke_test/simu_4/n_600/run_<timestamp>_pid<PID>
 
 ## Recorded 100-replication nonparametric batches
 
-These batches compute QR1, QR2, TR, and O-TR. Times are hours for one configuration, using 30 workers. Full estimation also computes the parametric methods.
+These source batches compute QR1, QR2, TR, and O-TR using 30 workers. Times are hours for one configuration. Some methods were subsequently rerun in separate batches; `runtime_batches.csv` identifies the exact contributions to the final tables.
 
 | Setting | N = 600 | N = 1000 | N = 1400 | N = 1800 |
 | --- | --- | --- | --- | --- |
@@ -55,11 +57,32 @@ These batches compute QR1, QR2, TR, and O-TR. Times are hours for one configurat
 | Setting (vi), (17,39) | QR1, QR2 | 1-30 | 1.8 |
 | Setting (vi), (17,39) | QR1, QR2 | 31-100 | 4.7 |
 
-For signal = 1, replication 60 is taken once from the first batch; the next contributes 61-89. The runs overlap in time, so their durations are not added as a single wall-clock runtime. For (13,30), the separate QR log for replications 1-30 was not retained.
+For signal = 1, replication 60 is taken once from the first batch; the next contributes 61-89. The runs overlap in time, so their durations are not added as a single wall-clock runtime.
+
+## Setting (vii)
+
+The final results combine the following saved batches. The times below are snapshot ages, as defined above.
+
+| N | Methods | Replications | Snapshot age (hours) |
+| --- | --- | --- | --- |
+| 1000 | All eight methods | 1-100 | 2.4 |
+| 1800 | MQR1, MQR2, O-TR', Oracle | 1-30 | 2.5 |
+| 1800 | QR1, QR2, TR, O-TR, Oracle | 1-30 | 4.1 |
+| 1800 | All eight methods | 31-100 | 15.0 |
+| 2500 | All eight methods | 1-50 | 4.3 |
+| 2500 | All eight methods | 51-100 | 4.1 |
+| 5000 | MQR1, MQR2, O-TR', Oracle | 1-30 | 6.7 |
+| 5000 | MQR1, MQR2, O-TR', Oracle | 31-100 | 16.1 |
+| 5000 | QR1, QR2, TR, Oracle | 1-30 | 27.7 |
+| 5000 | O-TR, Oracle | 1-30 | 0.2 |
+| 5000 | QR1, QR2, TR, O-TR, Oracle | 31-60 | 27.1 |
+| 5000 | QR1, QR2, TR, O-TR, Oracle | 61-100 | 41.3 |
+
+The current script uses 30 workers. The source snapshots do not record their worker counts.
 
 ## ACTG175 analysis
 
-The QR2, TR, and O-TR batch took about 2 hours for 100 sample splits. The real-data implementation specifies 31 worker processes.
+The final MQR2, O-TR', and QR2 effect batch records 30 workers. The corrected TR/O-TR KDE batch records 50 workers. The `real.R` entrypoint defaults to 31 workers. Earlier ACTG175 logs provide a rough runtime reference of 2-3 hours for 100 sample splits; timings and worker records for the final source files are listed in `runtime_batches.csv`.
 
 ## Progress during a new run
 

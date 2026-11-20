@@ -114,6 +114,10 @@ auxiliary_variance <- function (X, parameters)
     p
 }
 
+shift_truth <- function(X, config, parameters) {
+    config$shift_mid + config$shift_span * tanh(0.75 * X[, 2] + 0.5 * X[, 3])
+}
+
 .simu7_generate <- function (config, parameters, t) 
 {
     data_seed <- as.integer(config$seed + 100003L * t)

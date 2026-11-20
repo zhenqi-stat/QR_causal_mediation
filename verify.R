@@ -72,6 +72,19 @@ stopifnot(is.function(simu7$run_experiment), is.function(simu7$.simu7_prepare_dg
 simu7_expressions <- parse(file.path(archive_root, "simu_7.R"), keep.source = FALSE)
 stopifnot(!any(vapply(simu7_expressions, .has_constant_true_if, logical(1))),
   sum(vapply(simu7_expressions, .archive_lhs_is, logical(1), name = "replication_ids")) == 1L)
+for (case in seventh) {
+  # Each DGP configuration must work without inheriting helpers from simu_7.R.
+  standalone <- new.env(parent = .GlobalEnv)
+  sys.source(.archive_source_path(archive_root, case$path), envir = standalone)
+  stopifnot(exists("shift_truth", envir = standalone, inherits = FALSE))
+  configuration <- standalone$.simu7_config(case$N)
+  parameters <- standalone$.simu7_parameters(configuration)
+  actual_data <- standalone$.simu7_generate(configuration, parameters, 1L)
+  reference_config <- simu7$.simu7_config(case$N)
+  reference_data <- simu7$.simu7_generate(reference_config,
+    simu7$.simu7_parameters(reference_config), 1L)
+  stopifnot(identical(actual_data, reference_data))
+}
 for (case in index) {
   selected <- .archive_select_case(archive_root, case$group, case$config)
   stopifnot(identical(selected$id, case$id), case$tmax == 100)
